@@ -1,5 +1,5 @@
 ##helpers for solving pf problem
-from PowerGridResillience.const import constIn, constOut
+from const import constIn, constOut
 from numpy import array, vstack, copy
 from random import randint, choice
 from itertools import islice, takewhile

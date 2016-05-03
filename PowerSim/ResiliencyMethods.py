@@ -1,17 +1,17 @@
 import logging
 import multiprocessing
-import threading
 from math import log
 import numpy as np
 from joblib import Parallel, delayed
-from PowerGridResillience.Helper import copyCase
-from PowerGridResillience.Helper import createRandomWalk
+from Helper import copyCase
+from Helper import createRandomWalk
 from Simulations import SimTask
 import copy_reg
 import types
 import os
 import time
 import csv
+
 
 def _pickle_method(method):
     # Author: Steven Bethard
@@ -94,7 +94,7 @@ class MethodBase(multiprocessing.Process):
         self.results = multiprocessing.Queue()
         self.csvResult = []
         self.vizualizations = []
-        self.serializationTime = time.strftime("%Y%m%d_%H-%M",time.localtime())
+        self.serializationTime = time.strftime("%Y%m%d_%H-%M", time.localtime())
         self.simProcessors = []
 
     def run(self):
@@ -108,7 +108,7 @@ class MethodBase(multiprocessing.Process):
         for n in range(1, self.N):
             while True:
                 # returns changed Pg,Pd
-                simGraph, simTask = self.randomizeGraphAndCase(baseSimGraph, baseSimCase)
+                simGraph, simTask = self.randomizeGraphAndCase(self.graphCopy, self.caseCopy)
                 randomizedSimTask = SimTask(self.methodName, n, simGraph, simTask)
                 # checks overflows, after updating power flows
                 if randomizedSimTask.isValid():
@@ -123,7 +123,7 @@ class MethodBase(multiprocessing.Process):
             simP.daemon = True
             simP.start()
 
-        #wait for all tasks to finish
+        # wait for all tasks to finish
         self.tasks.join()
 
         # serialize results
@@ -131,13 +131,13 @@ class MethodBase(multiprocessing.Process):
         self.serializeVisualizations(self.vizualizations[0])
         self.serializeCSV(self.csvResult)
 
-        #after finishing, release simProcessors
+        # after finishing, release simProcessors
         print "la"
         return
 
     def extractResults(self, csvResult, visualizations):
 
-        #create output dir
+        # create output dir
         if not os.path.exists(self.outputDir):
             os.makedirs(self.outputDir)
         for i in range(self.results.qsize()):
@@ -146,14 +146,14 @@ class MethodBase(multiprocessing.Process):
                 visualizations += [res[3]]
             csvResult += [[res[0], res[1], res[2]]]
 
-
     # serialize results
-    def serializeVisualizations(self,visualizations):
-        visualizationsPath = os.path.join(self.outputDir,"visualizations")
+    def serializeVisualizations(self, visualizations):
+        visualizationsPath = os.path.join(self.outputDir, "visualizations")
         if not os.path.exists(visualizationsPath):
             os.makedirs(visualizationsPath)
         for v in visualizations:
-            outputVisualizationpath = os.path.join(visualizationsPath,str(v[0]) +"_"+self.serializationTime+".GraphML")
+            outputVisualizationpath = os.path.join(visualizationsPath,
+                                                   str(v[0]) + "_" + self.serializationTime + ".GraphML")
             v[1].write_graphml(outputVisualizationpath)
 
     def serializeCSV(self, csvResult):
@@ -188,7 +188,8 @@ class MethodBase(multiprocessing.Process):
 
 # class base for ESP from random_walkers
 class ESPBase(MethodBase):
-    def __init__(self, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvementCount, improvement, vStep=None):
+    def __init__(self, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvementCount,
+                 improvement, vStep=None):
         MethodBase.__init__(self, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, vStep)
         self.H = H
         self.M = M
@@ -253,6 +254,7 @@ class ESPEdge(ESPBase):
                     "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
         return self.graphCopy, self.caseCopy
 
+
 class ESPVertex(ESPBase):
     def __init__(self, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvementCount, improvement,
                  vStep=None):
@@ -288,36 +290,68 @@ class ESPVertex(ESPBase):
 class RandomEdge(MethodBase):
     def __init__(self, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvementCount, improvement,
                  vStep=None):
-        MethodBase.__init__(self, outputDir, 'Random edge', N, graphCopy, caseCopy, alpha, destroyMethod,
-                            improvementCount, improvement, vStep)
+        MethodBase.__init__(self, outputDir, 'Random edge', N, graphCopy, caseCopy, alpha, destroyMethod, vStep)
         self.improvementCount = improvementCount
         self.improvement = improvement
 
     def improveResiliency(self):
         logging.log(logging.INFO,
                     "starting improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
-        randomlyChosenEdges = np.random.choice(self.graphCopy.es.indices,self.improvementCount,replace=False)
+        randomlyChosenEdges = np.random.choice(self.graphCopy.es.indices, self.improvementCount, replace=False)
         for res in randomlyChosenEdges:
             edge = self.graphCopy.es.find(int(res))
             edge["c"] += self.improvement
         logging.log(logging.INFO,
                     "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
         return self.graphCopy, self.caseCopy
+
+    def serializeCSV(self, csvResult):
+        if not os.path.exists(self.outputDir):
+            os.makedirs(self.outputDir)
+        csvFileName = self.methodName + "_" + self.serializationTime + ".csv"
+        outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
+        with open(outputCSVFilePath, 'wb') as outputCSVFile:
+            fieldNames = ['n', 'LCCRatio', 'PfPdRatio', 'H', 'M', 'improvement', 'improvementCount', 'method',
+                          'destroyMethod', 'alpha']
+            writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
+
+            writer.writeheader()
+            [writer.writerow({'n': i[0], 'LCCRatio': i[1], 'PfPdRatio': i[2],
+                              'improvement': self.improvement, 'improvementCount': self.improvementCount,
+                              'method': self.methodName,
+                              'destroyMethod': self.destroyMethod, 'alpha': self.alpha}) for i in csvResult]
+
+
 class RandomVertex(MethodBase):
     def __init__(self, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvementCount, improvement,
                  vStep=None):
-        MethodBase.__init__(self, outputDir, 'Random vertex', N, graphCopy, caseCopy, alpha, destroyMethod,
-                            improvementCount, improvement, vStep)
+        MethodBase.__init__(self, outputDir, 'Random vertex', N, graphCopy, caseCopy, alpha, destroyMethod, vStep)
         self.improvementCount = improvementCount
         self.improvement = improvement
 
     def improveResiliency(self):
         logging.log(logging.INFO,
                     "starting improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
-        randomlyChosenVertices = np.random.choice(self.graphCopy.vs.indices,self.improvementCount,replace=False)
+        randomlyChosenVertices = np.random.choice(self.graphCopy.vs.indices, self.improvementCount, replace=False)
         for res in randomlyChosenVertices:
             vertex = self.graphCopy.vs.find(int(res))
             vertex["c"] += self.improvement
         logging.log(logging.INFO,
                     "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
         return self.graphCopy, self.caseCopy
+
+    def serializeCSV(self, csvResult):
+        if not os.path.exists(self.outputDir):
+            os.makedirs(self.outputDir)
+        csvFileName = self.methodName + "_" + self.serializationTime + ".csv"
+        outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
+        with open(outputCSVFilePath, 'wb') as outputCSVFile:
+            fieldNames = ['n', 'LCCRatio', 'PfPdRatio', 'H', 'M', 'improvement', 'improvementCount', 'method',
+                          'destroyMethod', 'alpha']
+            writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
+
+            writer.writeheader()
+            [writer.writerow({'n': i[0], 'LCCRatio': i[1], 'PfPdRatio': i[2],
+                              'improvement': self.improvement, 'improvementCount': self.improvementCount,
+                              'method': self.methodName,
+                              'destroyMethod': self.destroyMethod, 'alpha': self.alpha}) for i in csvResult]

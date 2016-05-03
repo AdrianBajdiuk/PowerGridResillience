@@ -1,0 +1,36 @@
+{
+  "N":46,
+  "alpha":0.05,
+  "vStep":5,
+  "simOutput":"simulations",
+  "simTasks":[
+    {
+      "methodName":"RandomEdge",
+      "destroyMethod":"VMaxK",
+      "improvement":150,
+      "improvementCount":5
+    },
+    {
+      "methodName":"RandomVertex",
+      "destroyMethod":"VMaxK",
+      "improvement":150,
+      "improvementCount":5
+    },
+    {
+      "methodName":"ESPEdge",
+      "destroyMethod":"VMaxK",
+      "improvement":150,
+      "improvementCount":5,
+      "H":14,
+      "M":43
+    },
+    {
+      "methodName":"ESPVertex",
+      "destroyMethod":"VMaxK",
+      "improvement":150,
+      "improvementCount":5,
+      "H":14,
+      "M":43
+    }
+    ]
+}

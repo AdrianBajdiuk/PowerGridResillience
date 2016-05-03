@@ -4,8 +4,7 @@ import time
 
 import igraph
 import numpy as np
-
-from PowerGridResillience import Helper
+import Helper
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)-8s %(message)s',

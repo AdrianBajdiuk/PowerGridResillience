@@ -1,9 +1,9 @@
 import multiprocessing
 import threading
 import logging
-from PowerGridResillience.runPfOptions import ppoption
+from runPfOptions import ppoption
 from pypower.api import runpf
-from PowerGridResillience.const import constOut
+from const import constOut
 import random
 import math
 import sys
