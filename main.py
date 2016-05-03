@@ -4,9 +4,9 @@ import json
 from optparse import OptionParser
 import logging
 
-branchesFileName = "branchesTest.csv"
-busesFileName = "busesTest.csv"
-generatorsFileName = "generatorsTest.csv"
+branchesFileName = "branches.csv"
+busesFileName = "buses.csv"
+generatorsFileName = "generators.csv"
 destinationFileName = "powerGrid_graph"
 
 currentDir = os.getcwd()
