@@ -1,6 +1,3 @@
-import createGraph as cg
-from Helper import copyCase
-from PowerSim.ResiliencyMethods import MethodBase, ESPEdge, ESPVertex, RandomEdge, RandomVertex
 import os
 import sys
 import json
@@ -17,6 +14,9 @@ currentDir = os.getcwd()
 libsPath = os.path.join(currentDir, "libs")
 sys.path.append(libsPath)
 
+import createGraph as cg
+from Helper import copyCase
+from PowerSim.ResiliencyMethods import MethodBase, ESPEdge, ESPVertex, RandomEdge, RandomVertex
 
 def main():
     parser = OptionParser()
