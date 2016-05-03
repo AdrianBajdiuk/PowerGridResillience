@@ -193,16 +193,17 @@ class SimTask:
                                   "type": "e",
                                   "name":edgeFrom+"-> "+edgeTo})
         for vertice in graph.vs:
-            if (vertice["Pin"] > vertice["c"] and not vertice["c"] == 0.0):  # never,ever,destroy slack bus !
+            if (vertice["Pin"] > vertice["c"] and not (
+                    vertice["c"] == 0.0 or vertice["type"] == 3)):  # never,ever,destroy slack bus !
                 prevGraphCurrentVerticeIndex = previousGraph.vs.find(name=vertice["name"]).index
                 pathL = len(graphUndirected.get_shortest_paths(cascadeTriggerInPreviousStep,
-                                                               prevGraphCurrentVerticeIndex)[0])
+                                                           prevGraphCurrentVerticeIndex)[0])
                 if pathL == 0:
                     pathL = sys.float_info.max
                 overFlows.append({"index": vertice.index,
                                   "pathL": pathL,
                                   "type": "v",
-                                  "name":vertice["name"]})
+                                  "name": vertice["name"]})
 
         return overFlows
 

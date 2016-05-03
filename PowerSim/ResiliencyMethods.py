@@ -11,6 +11,8 @@ import types
 import os
 import time
 import csv
+from const import  constIn
+import random
 
 
 def _pickle_method(method):
@@ -100,16 +102,14 @@ class MethodBase(multiprocessing.Process):
     def run(self):
         self.graphCopy, self.caseCopy = self.improveResiliency()
         vStep = self.vStep
-        baseSimGraph = self.graphCopy.copy()
-        baseSimCase = self.caseCopy.copy()
-        simTask = SimTask(self.methodName, 0, baseSimGraph, baseSimCase, v=vStep)
+        simTask = SimTask(self.methodName, 0, self.graphCopy.copy(), copyCase(self.caseCopy), v=vStep)
         self.tasks.put(simTask)
         # trigger of cascade, passed as reference to function
         for n in range(1, self.N):
             while True:
-                # returns changed Pg,Pd
-                simGraph, simTask = self.randomizeGraphAndCase(self.graphCopy, self.caseCopy)
-                randomizedSimTask = SimTask(self.methodName, n, simGraph, simTask)
+                # returns changed Pg,Pd, copies
+                randomizedSimGraph,randomizedSimCase = self.randomizeGraphAndCase(self.graphCopy, self.caseCopy)
+                randomizedSimTask = SimTask(self.methodName, n, randomizedSimGraph, randomizedSimCase)
                 # checks overflows, after updating power flows
                 if randomizedSimTask.isValid():
                     self.tasks.put(randomizedSimTask)
@@ -172,7 +172,25 @@ class MethodBase(multiprocessing.Process):
     # change Pin, and Pd to create another instance of case, but do not change topology
     # returns copies
     def randomizeGraphAndCase(self, graph, case):
-        return graph.copy(), copyCase(case)
+        simGraph = graph.copy()
+        simCase = copyCase(case)
+        #update generated power
+        for gen in simCase["gen"]:
+            rand = random.uniform(-self.alpha,self.alpha)
+            pg = gen[constIn["gen"]["Pg"]]
+            pg += pg * rand
+            genV = simGraph.vs.find("Bus_"+str(int(gen[constIn["gen"]["busIndex"]])))
+            genV["Pg"] = pg
+            gen[constIn["gen"]["Pg"]]= pg
+        #update power demand
+        for bus in simCase["bus"]:
+            rand = random.uniform(-self.alpha,self.alpha)
+            pd = bus[constIn["bus"]["Pd"]]
+            pd += pd * rand
+            busV = simGraph.vs.find("Bus_"+str(int(bus[constIn["bus"]["index"]])))
+            busV["Pd"] = pd
+            bus[constIn["bus"]["Pd"]] = pd
+        return simGraph, simCase
 
     # checks if new instance is valid->no overflows!
     def isGraphAndCaseValid(self, graph, case):
@@ -248,7 +266,8 @@ class ESPEdge(ESPBase):
 
         for res in selectedResults:
             edge = self.graphCopy.es.find(int(res))
-            edge["c"] += self.improvement
+            if edge["c"] != 0.0:
+                edge["c"] += self.improvement
 
         logging.log(logging.INFO,
                     "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
@@ -281,7 +300,8 @@ class ESPVertex(ESPBase):
         selectedResults = (-results).argsort()[:self.improvementCount]
         for res in selectedResults:
             vertex = self.graphCopy.vs.find(int(res))
-            vertex["c"] += self.improvement
+            if vertex["c"] != 0.0:
+                vertex["c"] += self.improvement
         logging.log(logging.INFO,
                     "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
         return self.graphCopy, self.caseCopy
@@ -300,7 +320,8 @@ class RandomEdge(MethodBase):
         randomlyChosenEdges = np.random.choice(self.graphCopy.es.indices, self.improvementCount, replace=False)
         for res in randomlyChosenEdges:
             edge = self.graphCopy.es.find(int(res))
-            edge["c"] += self.improvement
+            if edge["c"] != 0.0:
+                edge["c"] += self.improvement
         logging.log(logging.INFO,
                     "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
         return self.graphCopy, self.caseCopy
@@ -335,7 +356,8 @@ class RandomVertex(MethodBase):
         randomlyChosenVertices = np.random.choice(self.graphCopy.vs.indices, self.improvementCount, replace=False)
         for res in randomlyChosenVertices:
             vertex = self.graphCopy.vs.find(int(res))
-            vertex["c"] += self.improvement
+            if vertex["c"] != 0.0:
+                vertex["c"] += self.improvement
         logging.log(logging.INFO,
                     "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
         return self.graphCopy, self.caseCopy

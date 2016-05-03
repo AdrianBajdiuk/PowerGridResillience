@@ -1,5 +1,6 @@
 import numpy as np
-
+import random
+from const import constIn
 # deletes given verticeIndex from graph and case, and update graphBase
 # returns graph,case
 def deleteVertice(verticeName, graph, case, graphBase=None):
@@ -60,3 +61,20 @@ def deleteEdge(edgeIndex, graph, case, graphBase=None):
         return deleteVertice(zeroDegreeNames[0],graph,case,graphBase)
 
     return graph, case, graphBase
+
+def randomizePG(gen, graph, alpha):
+    rand = random.uniform(-alpha, alpha)
+    pg = gen[constIn["gen"]["Pg"]]
+    pg += rand*pg
+    genV = graph.vs.find("Bus_" + str(int(gen[constIn["gen"]["busIndex"]])))
+    genV["Pg"] = pg
+    gen[constIn["gen"]["Pg"]] = pg
+    return pg
+
+
+def randomizePD(self, bus, graph, alpha):
+    rand = random.uniform(alpha, alpha)
+    pd = bus[constIn["bus"]["Pd"]]
+    pd += rand*pd
+    busV = graph.vs.find("Bus_" + str(int(bus[constIn["bus"]["index"]])))
+    busV["Pd"] = pd

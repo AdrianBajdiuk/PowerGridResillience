@@ -71,7 +71,7 @@ def createGraphAndCase(busesFileName, branchesFileName,generatorsFileName, desti
         else:
             buses = np.vstack((buses,[index, type, Pd, Qd, Vm, Va, baseKv,1]))
         ##name = Bus_index
-        graph.add_vertex(name="Bus_"+str(index),Pg=0.0, isGenerator=isGenerator, Pd=Pd,c=c,Pin=0.0,isDeleted=False)
+        graph.add_vertex(name="Bus_"+str(index),Pg=0.0, isGenerator=isGenerator, Pd=Pd,c=c,Pin=0.0,isDeleted=False,type=type)
     csvBusFile.close()
     i=True
     for row in generatorsReader:
