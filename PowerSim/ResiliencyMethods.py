@@ -87,7 +87,7 @@ class SimProcessor(multiprocessing.Process):
 
 
 class MethodBase(multiprocessing.Process):
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(filename="sim.log",level=logging.INFO,
                         format='%(asctime)s %(levelname)-8s %(message)s',
                         datefmt='%a, %d %b %Y %H:%M:%S')
 
