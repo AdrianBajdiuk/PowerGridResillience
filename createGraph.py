@@ -6,9 +6,10 @@ import igraph
 import numpy as np
 import Helper
 
-logging.basicConfig(filename="sim.log", level=logging.INFO,
-                    format='%(asctime)s %(levelname)-8s %(message)s',
-                    datefmt='%a, %d %b %Y %H:%M:%S')
+# logging.basicConfig(filename="sim.log
+# ", level=logging.INFO,
+# format = '%(asctime)s %(levelname)-8s %(message)s',
+# datefmt = '%a, %d %b %Y %H:%M:%S')
 
 plotFileNameOut = "deegres_plot"
 csvDegreesFileNameOut = "degrees"

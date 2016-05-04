@@ -18,6 +18,18 @@ sys.path.append(libsPath)
 import createGraph as cg
 from Helper import copyCase
 from PowerSim.ResiliencyMethods import MethodBase, ESPEdge, ESPVertex, RandomEdge, RandomVertex
+import logging
+
+logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+rootLogger = logging.getLogger()
+
+fileHandler = logging.FileHandler("{0}/{1}.log".format("/logs", "sim"))
+fileHandler.setFormatter(logFormatter)
+rootLogger.addHandler(fileHandler)
+
+consoleHandler = logging.StreamHandler()
+consoleHandler.setFormatter(logFormatter)
+rootLogger.addHandler(consoleHandler)
 
 def main():
     parser = OptionParser()

@@ -50,6 +50,7 @@ def _unpickle_method(func_name, obj, cls):
 copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
 
 
+
 class SimProcessor(multiprocessing.Process):
     def __init__(self, inputQueue, outputQueue):
         multiprocessing.Process.__init__(self)
@@ -87,9 +88,9 @@ class SimProcessor(multiprocessing.Process):
 
 
 class MethodBase(multiprocessing.Process):
-    logging.basicConfig(filename="sim.log",level=logging.INFO,
-                        format='%(asctime)s %(levelname)-8s %(message)s',
-                        datefmt='%a, %d %b %Y %H:%M:%S')
+    # logging.basicConfig(filename="sim.log",level=logging.INFO,
+    #                     format='%(asctime)s %(levelname)-8s %(message)s',
+    #                     datefmt='%a, %d %b %Y %H:%M:%S')
 
     # destroyMethod = [VMaxK,VMaxPin,VRand,EMaxP,ERand]
     def __init__(self, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, vStep=None):
