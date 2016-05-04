@@ -56,6 +56,7 @@ def createGraphAndCase(busesFileName, branchesFileName,generatorsFileName, desti
         Qd = float(row['Qd'])
         type = int(row['type'])
         c=float(row['c'])
+        deletable = bool(int(row['deletable']))
         # area = int(row['area'])
         isGenerator = type == 2
         if type == 3:
@@ -71,7 +72,7 @@ def createGraphAndCase(busesFileName, branchesFileName,generatorsFileName, desti
         else:
             buses = np.vstack((buses,[index, type, Pd, Qd, Vm, Va, baseKv,1]))
         ##name = Bus_index
-        graph.add_vertex(name="Bus_"+str(index),Pg=0.0, isGenerator=isGenerator, Pd=Pd,c=c,Pin=0.0,isDeleted=False,type=type)
+        graph.add_vertex(name="Bus_"+str(index),Pg=0.0, isGenerator=isGenerator, Pd=Pd,c=c,Pin=0.0,isDeleted=False,deletable=deletable,type=type)
     csvBusFile.close()
     i=True
     for row in generatorsReader:
@@ -102,12 +103,13 @@ def createGraphAndCase(busesFileName, branchesFileName,generatorsFileName, desti
             x=float(row['x'])
             b=float(row['b'])
             c=float(row['c'])
+            deletable = bool(int(row['deletable']))
             if i:
                 branches=np.array([fromBus,toBus,r,x,b])
                 i=False
             else:
                 branches=np.vstack((branches,[fromBus,toBus,r,x,b]))
-            graph.add_edge("Bus_"+str(fromBus),"Bus_"+str(toBus),Pin=0.0,Pout=0,c=c,isDeleted=False)
+            graph.add_edge("Bus_"+str(fromBus),"Bus_"+str(toBus),Pin=0.0,Pout=0,c=c,isDeleted=False,deletable=deletable)
         except igraph.InternalError:
             print("%d, %d" % (fromBus, toBus))
 

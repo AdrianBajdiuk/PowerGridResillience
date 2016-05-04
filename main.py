@@ -6,7 +6,8 @@ import logging
 
 branchesFileName = "branches.csv"
 busesFileName = "buses.csv"
-generatorsFileName = "generators.csv"
+generatorsFileName = "generators" \
+                     ".csv"
 destinationFileName = "powerGrid_graph"
 
 currentDir = os.getcwd()

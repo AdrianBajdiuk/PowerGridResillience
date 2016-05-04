@@ -14,7 +14,6 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)-8s %(message)s',
                     datefmt='%a, %d %b %Y %H:%M:%S')
 
-
 class SimTask:
     def __init__(self, methodName, iteration, graphCopy,caseCopy, n=None, v=None):
         self.method = methodName
@@ -52,7 +51,11 @@ class SimTask:
 
         logging.log(logging.INFO,
                     "starting %(method)s method simulation in %(iter)d iteration" % {"method": self.method, "iter": self.iteration})
-        self.updateGraphFlow(self.graphVisual,self.case)
+        try:
+            self.updateGraphFlow(self.graphVisual,self.case)
+        except SimException as e:
+            raise e
+
         # destroy the graph
         self.graph,self.case,self.graphVisual,self.cascadeTrigger = self.destroyGraph(self.graph,self.case,self.graphVisual)
         if not (self.n is None):
@@ -72,7 +75,10 @@ class SimTask:
             # until no malfunctions stops
             counter = 0;
             while True:
-                self.updateGraphFlow(self.graph,self.case)
+                try:
+                    self.updateGraphFlow(self.graph,self.case)
+                except SimException as e:
+                    raise e
                 malfunctions = self.findMalfunctions(self.graph,self.previousGraph,self.cascadeTrigger)
                 if len(malfunctions) > 0:
                     self.simulate(counter, malfunctions)
@@ -135,7 +141,11 @@ class SimTask:
 
     # updates the flows in a graph
     def updateGraphFlow(self,graph,case):
-        solverResult = runpf(case, ppopt=ppoption())
+        solverResult = None
+        try:
+            solverResult = runpf(case, ppopt=ppoption())
+        except ValueError:
+            raise SimException
 
         # get from the results branches with counters if there is more branches between two buses
         counters = []
@@ -179,7 +189,7 @@ class SimTask:
         overFlows = []
         graphUndirected = previousGraph.as_undirected()
         for edge in graph.es:
-            if math.fabs(edge["Pin"]) > edge["c"] and not edge["c"] == 0.0:  # never,ever,destroy slack bus connections!
+            if math.fabs(edge["Pin"]) > edge["c"] and not edge["c"] == 0.0 and edge["deletable"]:  # never,ever,destroy slack bus connections!
                 prevGraphCurrentEdgeTargetIndex = previousGraph.vs.find(
                     name=graph.vs.find(edge.target)["name"]).index
                 pathL = len(graphUndirected.get_shortest_paths(cascadeTriggerInPreviousStep,
@@ -193,8 +203,7 @@ class SimTask:
                                   "type": "e",
                                   "name":edgeFrom+"-> "+edgeTo})
         for vertice in graph.vs:
-            if (vertice["Pin"] > vertice["c"] and not (
-                    vertice["c"] == 0.0 or vertice["type"] == 3)):  # never,ever,destroy slack bus !
+            if (vertice["Pin"] > vertice["c"] and vertice["deletable"]):  # never,ever,destroy slack bus !
                 prevGraphCurrentVerticeIndex = previousGraph.vs.find(name=vertice["name"]).index
                 pathL = len(graphUndirected.get_shortest_paths(cascadeTriggerInPreviousStep,
                                                            prevGraphCurrentVerticeIndex)[0])
@@ -228,3 +237,5 @@ class SimTask:
             return v["Pin"]+ v["Pg"]-v["Pout"]
         else:
             return 0.0
+class SimException(Exception):
+    pass

@@ -67,13 +67,23 @@ class SimProcessor(multiprocessing.Process):
             logging.log(logging.INFO,
                         "starting %(method)s method %(iter)d iteration" % {"method": simTask.method,
                                                                            "iter": simTask.iteration})
-            simTask.run()
-            result = simTask.getResult()
-            logging.log(logging.INFO,
-                        "finished %(method)s method %(iter)d iteration with result: LCC ratio %(lcg)f , PfPd ratio %(pf)f" %
-                        {"method": simTask.method, "iter": simTask.iteration, "lcg": result[1], "pf": result[2]})
-            self.outputQueue.put(result)
-            self.inputQueue.task_done()
+
+            try:
+                simTask.run()
+                result = simTask.getResult()
+                logging.log(logging.INFO,
+                            "finished with succes %(method)s method %(iter)d iteration with result: LCC ratio %(lcg)f , PfPd ratio %(pf)f" %
+                            {"method": simTask.method, "iter": simTask.iteration, "lcg": result[1], "pf": result[2]})
+                self.outputQueue.put(("success",result))
+            except Exception as x:
+                print x
+                result = simTask.getResult()
+                logging.log(logging.INFO,
+                           "finished with error %(method)s method %(iter)d iteration with result: LCC ratio %(lcg)f , PfPd ratio %(pf)f" %
+                           {"method": simTask.method, "iter": simTask.iteration, "lcg": result[1], "pf": result[2]})
+                self.outputQueue.put(("error",result))
+            finally:
+                self.inputQueue.task_done()
 
 
 class MethodBase(multiprocessing.Process):
@@ -142,9 +152,9 @@ class MethodBase(multiprocessing.Process):
             os.makedirs(self.outputDir)
         for i in range(self.results.qsize()):
             res = self.results.get()
-            if len(res[3]) > 0:
-                visualizations += [res[3]]
-            csvResult += [[res[0], res[1], res[2]]]
+            if len(res[1][3]) > 0:
+                visualizations += [res[1][3]]
+            csvResult += [[res[0], res[1][0], res[1][1], res[1][2]]]
 
     # serialize results
     def serializeVisualizations(self, visualizations):
@@ -162,13 +172,13 @@ class MethodBase(multiprocessing.Process):
         csvFileName = self.methodName + "_" + self.serializationTime + ".csv"
         outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
         with open(outputCSVFilePath, 'wb') as outputCSVFile:
-            fieldNames = ['n', 'LCCRatio', 'PfPdRatio', 'method', 'destroyMethod', 'alpha']
+            fieldNames = ['status','n', 'LCCRatio', 'PfPdRatio', 'method', 'destroyMethod', 'alpha']
             writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
 
             writer.writeheader()
-            [writer.writerow({'n': i[0], 'LCCRatio': i[1], 'PfPdRatio': i[2], 'method': self.methodName,
+            [writer.writerow({'status':i[0],'n': i[1], 'LCCRatio': i[2], 'PfPdRatio': i[3], 'method': self.methodName,
                               'destroyMethod': self.destroyMethod, 'alpha': self.alpha}) for i in csvResult]
-
+        outputCSVFile.close()
     # change Pin, and Pd to create another instance of case, but do not change topology
     # returns copies
     def randomizeGraphAndCase(self, graph, case):
@@ -179,7 +189,7 @@ class MethodBase(multiprocessing.Process):
             rand = random.uniform(-self.alpha,self.alpha)
             pg = gen[constIn["gen"]["Pg"]]
             pg += pg * rand
-            genV = simGraph.vs.find("Bus_"+str(int(gen[constIn["gen"]["busIndex"]])))
+            genV = simGraph.vs.find(name="Bus_"+str(int(gen[constIn["gen"]["busIndex"]])))
             genV["Pg"] = pg
             gen[constIn["gen"]["Pg"]]= pg
         #update power demand
@@ -187,7 +197,7 @@ class MethodBase(multiprocessing.Process):
             rand = random.uniform(-self.alpha,self.alpha)
             pd = bus[constIn["bus"]["Pd"]]
             pd += pd * rand
-            busV = simGraph.vs.find("Bus_"+str(int(bus[constIn["bus"]["index"]])))
+            busV = simGraph.vs.find(name="Bus_"+str(int(bus[constIn["bus"]["index"]])))
             busV["Pd"] = pd
             bus[constIn["bus"]["Pd"]] = pd
         return simGraph, simCase
@@ -227,16 +237,16 @@ class ESPBase(MethodBase):
         csvFileName = self.methodName + "_" + self.serializationTime + ".csv"
         outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
         with open(outputCSVFilePath, 'wb') as outputCSVFile:
-            fieldNames = ['n', 'LCCRatio', 'PfPdRatio', 'H', 'M', 'improvement', 'improvementCount', 'method',
+            fieldNames = ['status','n', 'LCCRatio', 'PfPdRatio', 'H', 'M', 'improvement', 'improvementCount', 'method',
                           'destroyMethod', 'alpha']
             writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
 
             writer.writeheader()
-            [writer.writerow({'n': i[0], 'LCCRatio': i[1], 'PfPdRatio': i[2], 'H': self.H, 'M': self.M,
+            [writer.writerow({'status':i[0],'n': i[1], 'LCCRatio': i[2], 'PfPdRatio': i[3], 'H': self.H, 'M': self.M,
                               'improvement': self.improvement, 'improvementCount': self.improvementCount,
                               'method': self.methodName,
                               'destroyMethod': self.destroyMethod, 'alpha': self.alpha}) for i in csvResult]
-
+        outputCSVFile.close()
 
 class ESPEdge(ESPBase):
     def __init__(self, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvementCount, improvement,
@@ -332,16 +342,16 @@ class RandomEdge(MethodBase):
         csvFileName = self.methodName + "_" + self.serializationTime + ".csv"
         outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
         with open(outputCSVFilePath, 'wb') as outputCSVFile:
-            fieldNames = ['n', 'LCCRatio', 'PfPdRatio', 'H', 'M', 'improvement', 'improvementCount', 'method',
+            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio','improvement', 'improvementCount', 'method',
                           'destroyMethod', 'alpha']
             writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
 
             writer.writeheader()
-            [writer.writerow({'n': i[0], 'LCCRatio': i[1], 'PfPdRatio': i[2],
+            [writer.writerow({'status':i[0],'n': i[1], 'LCCRatio': i[2], 'PfPdRatio': i[3],
                               'improvement': self.improvement, 'improvementCount': self.improvementCount,
                               'method': self.methodName,
                               'destroyMethod': self.destroyMethod, 'alpha': self.alpha}) for i in csvResult]
-
+        outputCSVFile.close()
 
 class RandomVertex(MethodBase):
     def __init__(self, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvementCount, improvement,
@@ -368,12 +378,13 @@ class RandomVertex(MethodBase):
         csvFileName = self.methodName + "_" + self.serializationTime + ".csv"
         outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
         with open(outputCSVFilePath, 'wb') as outputCSVFile:
-            fieldNames = ['n', 'LCCRatio', 'PfPdRatio', 'H', 'M', 'improvement', 'improvementCount', 'method',
+            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio','improvement', 'improvementCount', 'method',
                           'destroyMethod', 'alpha']
             writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
 
             writer.writeheader()
-            [writer.writerow({'n': i[0], 'LCCRatio': i[1], 'PfPdRatio': i[2],
+            [writer.writerow({'status':i[0],'n': i[1], 'LCCRatio': i[2], 'PfPdRatio': i[3],
                               'improvement': self.improvement, 'improvementCount': self.improvementCount,
                               'method': self.methodName,
                               'destroyMethod': self.destroyMethod, 'alpha': self.alpha}) for i in csvResult]
+        outputCSVFile.close()
