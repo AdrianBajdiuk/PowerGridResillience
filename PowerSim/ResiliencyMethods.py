@@ -113,8 +113,6 @@ class MethodBase(multiprocessing.Process):
         self.graphCopy, self.caseCopy = self.improveResiliency()
         vStep = self.vStep
         simTask = SimTask(self.methodName, 0, self.graphCopy.copy(), copyCase(self.caseCopy), v=vStep)
-        simTask.isValid()
-        simTask.run()
         self.tasks.put(simTask)
         # trigger of cascade, passed as reference to function
         for n in range(1, self.N):
