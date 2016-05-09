@@ -57,6 +57,8 @@ class SimTask:
         except SimException as e:
             raise e
 
+        self.updateGraphFlow(self.graph, self.case)
+        self.getResult()
         # destroy the graph
         self.graph,self.case,self.graphVisual,self.cascadeTrigger = self.destroyGraph(self.graph,self.case,self.graphVisual)
         if not (self.n is None):
@@ -234,8 +236,9 @@ class SimTask:
 
     def actualPflowForVertex(self,v):
 
-        if v["Pin"] != 0.0 and v["Pg"] != 0.0 :
-            return v["Pin"]+ v["Pg"]-v["Pout"]
+        res = v["Pin"]+ v["Pg"]-v["Pout"]
+        if res>0.0 :
+            return res
         else:
             return 0.0
 class SimException(Exception):

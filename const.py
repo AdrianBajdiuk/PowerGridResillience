@@ -9,3 +9,5 @@ constIn={"bus":{"index":0,"type":1,"Pd":2,"Qd":3,"Vm":7,"Va":8,"baseKV":9},
 constOut={"branch":{"fromBus":0,"toBus":1,"Pin":13,"Qin":14,"Pout":15,"Qout":16},
           "bus":{"index":0,"Vm":7,"Va":8}
           }
+
+simProcessorsCount = 1

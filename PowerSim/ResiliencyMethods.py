@@ -11,9 +11,8 @@ import types
 import os
 import time
 import csv
-from const import  constIn
+from const import  constIn,simProcessorsCount
 import random
-
 
 def _pickle_method(method):
     # Author: Steven Bethard
@@ -114,6 +113,8 @@ class MethodBase(multiprocessing.Process):
         self.graphCopy, self.caseCopy = self.improveResiliency()
         vStep = self.vStep
         simTask = SimTask(self.methodName, 0, self.graphCopy.copy(), copyCase(self.caseCopy), v=vStep)
+        simTask.isValid()
+        simTask.run()
         self.tasks.put(simTask)
         # trigger of cascade, passed as reference to function
         for n in range(1, self.N):
@@ -127,7 +128,7 @@ class MethodBase(multiprocessing.Process):
                     break
         # in this point tasks are generated
         # start processes, as much as cpu's
-        num_cores = multiprocessing.cpu_count()
+        num_cores = simProcessorsCount
         for p in range(num_cores):
             simP = SimProcessor(self.tasks, self.results)
             # self.simProcessors.append(simP)

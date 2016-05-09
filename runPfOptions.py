@@ -81,7 +81,7 @@ OUTPUT_OPTIONS = [
 2 - print a lot of progress info,
 3 - print all progress info'''),
 
-    ('out_all', 0, '''controls printing of results:
+    ('out_all', -1, '''controls printing of results:
 -1 - individual flags control what prints,
 0 - don't print anything
     (overrides individual flags),

@@ -3,6 +3,7 @@ import sys
 import json
 from optparse import OptionParser
 import logging
+import const
 
 branchesFileName = "branches.csv"
 busesFileName = "buses.csv"
@@ -40,6 +41,7 @@ console.setFormatter(formatter)
 # add the handler to the root logger
 logging.getLogger('').addHandler(console)
 
+
 def main():
     parser = OptionParser()
     parser.add_option("-i", "--input", dest="input", default="data", help="folder with input data")
@@ -72,6 +74,8 @@ def main():
     simOutputDir = configDict["simOutput"] if os.path.isabs(configDict["simOutput"]) else os.path.join(os.getcwd(),
                                                                                                        configDict[
                                                                                                            "simOutput"])
+    if "simProcessorsCount" in configDict:
+        simProcessorsCount = configDict["simProcessorsCount"]
     for task in configDict["simTasks"]:
         simTask = None
         destroyMethod = task["destroyMethod"]
@@ -100,6 +104,10 @@ def main():
             simTask = ESPVertex(outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, task["H"],
                                 task["M"],
                                 task["improvementCount"], task["improvement"], simVStep)
+        elif task["methodName"] == "base":
+            simName = "base"
+            outputDir = os.path.join(simOutputDir, simName)
+            simTask = MethodBase(outputDir,simName, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, simVStep)
 
         if simTask is not None:
             simTasks.append((simName, simTask))
