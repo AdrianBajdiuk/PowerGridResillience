@@ -11,8 +11,9 @@ import types
 import os
 import time
 import csv
-from const import  constIn,simProcessorsCount
+from const import  constIn
 import random
+
 
 def _pickle_method(method):
     # Author: Steven Bethard
@@ -92,7 +93,7 @@ class MethodBase(multiprocessing.Process):
     #                     datefmt='%a, %d %b %Y %H:%M:%S')
 
     # destroyMethod = [VMaxK,VMaxPin,VRand,EMaxP,ERand]
-    def __init__(self, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, vStep=None):
+    def __init__(self, processesCount,outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, vStep=None):
         multiprocessing.Process.__init__(self)
         self.outputDir = outputDir
         self.graphCopy = graphCopy
@@ -108,6 +109,7 @@ class MethodBase(multiprocessing.Process):
         self.vizualizations = []
         self.serializationTime = time.strftime("%Y%m%d_%H-%M", time.localtime())
         self.simProcessors = []
+        self.processesCount = processesCount
 
     def run(self):
         self.graphCopy, self.caseCopy = self.improveResiliency()
@@ -126,7 +128,7 @@ class MethodBase(multiprocessing.Process):
                     break
         # in this point tasks are generated
         # start processes, as much as cpu's
-        num_cores = simProcessorsCount
+        num_cores = self.processesCount
         for p in range(num_cores):
             simP = SimProcessor(self.tasks, self.results)
             # self.simProcessors.append(simP)
@@ -216,9 +218,9 @@ class MethodBase(multiprocessing.Process):
 
 # class base for ESP from random_walkers
 class ESPBase(MethodBase):
-    def __init__(self, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvementCount,
+    def __init__(self,processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvementCount,
                  improvement, vStep=None):
-        MethodBase.__init__(self, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, vStep)
+        MethodBase.__init__(self,processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, vStep)
         self.H = H
         self.M = M
         self.improvementCount = improvementCount
@@ -249,9 +251,9 @@ class ESPBase(MethodBase):
         outputCSVFile.close()
 
 class ESPEdge(ESPBase):
-    def __init__(self, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvementCount, improvement,
+    def __init__(self,processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvementCount, improvement,
                  vStep=None):
-        ESPBase.__init__(self, outputDir, 'ESP edge', N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
+        ESPBase.__init__(self,processesCount, outputDir, 'ESP edge', N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
                          improvementCount, improvement, vStep)
 
     def improveResiliency(self):
@@ -285,9 +287,9 @@ class ESPEdge(ESPBase):
 
 
 class ESPVertex(ESPBase):
-    def __init__(self, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvementCount, improvement,
+    def __init__(self,processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvementCount, improvement,
                  vStep=None):
-        ESPBase.__init__(self, outputDir, 'ESP vertex', N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
+        ESPBase.__init__(self,processesCount, outputDir, 'ESP vertex', N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
                          improvementCount, improvement, vStep)
 
     def improveResiliency(self):
@@ -318,9 +320,9 @@ class ESPVertex(ESPBase):
 
 
 class RandomEdge(MethodBase):
-    def __init__(self, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvementCount, improvement,
+    def __init__(self,processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvementCount, improvement,
                  vStep=None):
-        MethodBase.__init__(self, outputDir, 'Random edge', N, graphCopy, caseCopy, alpha, destroyMethod, vStep)
+        MethodBase.__init__(self,processesCount, outputDir, 'Random edge', N, graphCopy, caseCopy, alpha, destroyMethod, vStep)
         self.improvementCount = improvementCount
         self.improvement = improvement
 
@@ -354,7 +356,7 @@ class RandomEdge(MethodBase):
         outputCSVFile.close()
 
 class RandomVertex(MethodBase):
-    def __init__(self, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvementCount, improvement,
+    def __init__(self,processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvementCount, improvement,
                  vStep=None):
         MethodBase.__init__(self, outputDir, 'Random vertex', N, graphCopy, caseCopy, alpha, destroyMethod, vStep)
         self.improvementCount = improvementCount

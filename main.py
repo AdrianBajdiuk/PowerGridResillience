@@ -11,7 +11,7 @@ generatorsFileName = "generators" \
                      ".csv"
 destinationFileName = "powerGrid_graph"
 
-currentDir = os.getcwd()
+currentDir = os.path.dirname(os.path.abspath(__file__))
 # add libs folder to scan
 libsPath = os.path.join(currentDir, "libs")
 sys.path.append(libsPath)
@@ -75,7 +75,7 @@ def main():
                                                                                                        configDict[
                                                                                                            "simOutput"])
     if "simProcessorsCount" in configDict:
-        simProcessorsCount = configDict["simProcessorsCount"]
+        simProcessorsCount  = configDict["simProcessorsCount"]
     for task in configDict["simTasks"]:
         simTask = None
         destroyMethod = task["destroyMethod"]
@@ -83,31 +83,31 @@ def main():
         if task["methodName"] == "RandomEdge":
             simName = "RandomEdge-imp%d-impC%d" % (task["improvement"], task["improvementCount"])
             outputDir = os.path.join(simOutputDir, simName)
-            simTask = RandomEdge(outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod,
+            simTask = RandomEdge(simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod,
                                  task["improvementCount"], task["improvement"], simVStep)
         elif task["methodName"] == "RandomVertex":
             simName = "RandomVertex-imp%d-impC%d" % (task["improvement"], task["improvementCount"])
             outputDir = os.path.join(simOutputDir, simName)
-            simTask = RandomVertex(outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod,
+            simTask = RandomVertex(simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod,
                                    task["improvementCount"], task["improvement"], simVStep)
         elif task["methodName"] == "ESPEdge":
             simName = "ESPEdge-imp%d-impC%d-H%d-M%d" % (
                 task["improvement"], task["improvementCount"], task["H"], task["M"])
             outputDir = os.path.join(simOutputDir, simName)
-            simTask = ESPEdge(outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, task["H"],
+            simTask = ESPEdge(simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, task["H"],
                               task["M"],
                               task["improvementCount"], task["improvement"], simVStep)
         elif task["methodName"] == "ESPVertex":
             simName = "ESPVertex-imp%d-impC%d-H%d-M%d" % (
                 task["improvement"], task["improvementCount"], task["H"], task["M"])
             outputDir = os.path.join(simOutputDir, simName)
-            simTask = ESPVertex(outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, task["H"],
+            simTask = ESPVertex(simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, task["H"],
                                 task["M"],
                                 task["improvementCount"], task["improvement"], simVStep)
         elif task["methodName"] == "base":
             simName = "base"
             outputDir = os.path.join(simOutputDir, simName)
-            simTask = MethodBase(outputDir,simName, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, simVStep)
+            simTask = MethodBase(simProcessorsCount,outputDir,simName, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, simVStep)
 
         if simTask is not None:
             simTasks.append((simName, simTask))

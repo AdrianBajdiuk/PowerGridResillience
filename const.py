@@ -10,4 +10,3 @@ constOut={"branch":{"fromBus":0,"toBus":1,"Pin":13,"Qin":14,"Pout":15,"Qout":16}
           "bus":{"index":0,"Vm":7,"Va":8}
           }
 
-simProcessorsCount = 1
