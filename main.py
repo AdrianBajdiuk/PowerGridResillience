@@ -48,20 +48,20 @@ def main():
     parser.add_option("-c", "--config", dest="config", default="config.json", help="filename with config data")
     (options, args) = parser.parse_args()
     busesInput = os.path.join(options.input, busesFileName) if os.path.isabs(options.input) else os.path.join(
-        os.getcwd(), options.input, busesFileName)
+        currentDir, options.input, busesFileName)
     branchesInput = os.path.join(options.input, branchesFileName) if os.path.isabs(options.input) else os.path.join(
-        os.getcwd(), options.input, branchesFileName)
+        currentDir, options.input, branchesFileName)
     generatorsInput = os.path.join(options.input, generatorsFileName) if os.path.isabs(options.input) else os.path.join(
-        os.getcwd(), options.input, generatorsFileName)
+        currentDir, options.input, generatorsFileName)
     destinationInput = os.path.join(options.input, destinationFileName) if os.path.isabs(
         options.input) else os.path.join(
-        os.getcwd(), options.input, busesFileName)
+        currentDir, options.input, busesFileName)
     result = cg.createGraphAndCase(busesInput, branchesInput, generatorsInput, destinationInput, False)
     graph = result["graph"]
     case = result["case"]
 
     configJSON = options.config if os.path.isabs(options.config) else os.path.join(
-        os.getcwd(), options.config)
+        currentDir, options.config)
     configDict = None
 
     with open(configJSON) as config_data:
@@ -71,7 +71,7 @@ def main():
     simN = configDict["N"]
     simAlpha = configDict["alpha"]
     simVStep = configDict["vStep"]
-    simOutputDir = configDict["simOutput"] if os.path.isabs(configDict["simOutput"]) else os.path.join(os.getcwd(),
+    simOutputDir = configDict["simOutput"] if os.path.isabs(configDict["simOutput"]) else os.path.join(currentDir,
                                                                                                        configDict[
                                                                                                            "simOutput"])
     if "simProcessorsCount" in configDict:
