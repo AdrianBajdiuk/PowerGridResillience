@@ -4,6 +4,7 @@ import json
 from optparse import OptionParser
 import logging
 import const
+from time import strftime,gmtime
 
 branchesFileName = "branches.csv"
 busesFileName = "buses.csv"
@@ -21,7 +22,7 @@ from Helper import copyCase
 from PowerSim.ResiliencyMethods import MethodBase, ESPEdge, ESPVertex, RandomEdge, RandomVertex
 import logging
 
-fileLogPath = "sim.log"
+fileLogPath = "sim_"+strftime("%H-%M", gmtime())+".log"
 if not os.path.exists(fileLogPath):
     flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
     os.open(fileLogPath, flags)

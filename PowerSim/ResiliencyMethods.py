@@ -262,7 +262,7 @@ class ESPEdge(ESPBase):
 
         vs = self.graphCopy.vs
         espResult = np.zeros((len(self.graphCopy.es.indices), len(vs)), dtype=float)
-        num_cores = self.processesCount * 2
+        num_cores = self.processesCount
         for vertex in vs:
             logging.log(logging.INFO, "starting walks for : " + str(vertex))
             walks = Parallel(n_jobs=num_cores)(
@@ -271,7 +271,7 @@ class ESPEdge(ESPBase):
                 for i, e in enumerate([row[1] for row in walk]):
                     if (e is not None and i != (len(walk) - 1)):
                         espResult[e, vertex.index] += 1.0 / self.M
-                        logging.log(logging.INFO, "finished walks for : " + str(vertex))
+            logging.log(logging.INFO, "finished walks for : " + str(vertex))
         # print espResult
         results = np.apply_along_axis(self.etropyRow, 1, espResult)
         # selected for improvement edge indices
@@ -302,7 +302,7 @@ class ESPVertex(ESPBase):
 
         vs = self.graphCopy.vs
         espResult = np.zeros((len(vs), len(vs)), dtype=float)
-        num_cores = self.processesCount * 2
+        num_cores = self.processesCount
         for vertex in vs:
             logging.log(logging.INFO, "starting walks for : " + str(vertex))
             walks = Parallel(n_jobs=num_cores)(
