@@ -77,7 +77,7 @@ class SimProcessor(multiprocessing.Process):
                             {"method": simTask.method, "iter": simTask.iteration, "lcg": result[1], "pf": result[2]})
                 self.outputQueue.put(("success",result))
             except Exception as x:
-                print x
+                logging.error(x.message)
                 result = simTask.getResult()
                 logging.log(logging.INFO,
                            "finished with error %(method)s method %(iter)d iteration with result: LCC ratio %(lcg)f , PfPd ratio %(pf)f" %
