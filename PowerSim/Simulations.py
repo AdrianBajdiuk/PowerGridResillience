@@ -80,18 +80,20 @@ class SimTask:
             while True:
                 try:
                     self.updateGraphFlow(self.graph,self.case)
-                except SimException as e:
-                    raise e
-                malfunctions = self.findMalfunctions(self.graph,self.previousGraph,self.cascadeTrigger)
-                if len(malfunctions) > 0:
-                    self.simulate(counter, malfunctions)
-                    if self.visualize and (counter == 0 or (counter%self.v) == 0):
-                        self.visualizations += [[counter, self.graphVisual.copy()]]
-                    counter += 1
-                else:
-                    logging.log(logging.INFO, "found  0 overflows for %(method)s method in %(iter)d iteration, try %(try)d."
-                                              " Terminating" % {"method": self.method, "iter": self.iteration,"try":counter})
+                    malfunctions = self.findMalfunctions(self.graph, self.previousGraph, self.cascadeTrigger)
+                    if len(malfunctions) > 0:
+                        self.simulate(counter, malfunctions)
+                        if self.visualize and (counter == 0 or (counter % self.v) == 0):
+                            self.visualizations += [[counter, self.graphVisual.copy()]]
+                        counter += 1
+                    else:
+                        logging.log(logging.INFO, "found  0 overflows for %(method)s method in %(iter)d iteration, try %(try)d."
+                                              " Terminating" % {"method": self.method, "iter": self.iteration,
+                                                                "try": counter})
                     return
+                except SimException as e:
+                    logging.error(e.message)
+                    raise e
 
     def simulate(self, counter, malfunctions):
         logging.log(logging.INFO, "found  %(over)d overflows for %(method)s method"
