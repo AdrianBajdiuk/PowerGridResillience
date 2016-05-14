@@ -54,13 +54,14 @@ class SimTask:
                     "starting %(method)s method simulation in %(iter)d iteration" % {"method": self.method, "iter": self.iteration})
         try:
             self.updateGraphFlow(self.graphVisual,self.case)
+            self.updateGraphFlow(self.graph, self.case)
+            # self.getResult()
+            # destroy the graph
+            self.graph, self.case, self.graphVisual, self.cascadeTrigger = self.destroyGraph(self.graph, self.case,
+                                                                                             self.graphVisual)
         except SimException as e:
+            logging.error(e.message)
             raise e
-
-        self.updateGraphFlow(self.graph, self.case)
-        self.getResult()
-        # destroy the graph
-        self.graph,self.case,self.graphVisual,self.cascadeTrigger = self.destroyGraph(self.graph,self.case,self.graphVisual)
         if not (self.n is None):
             # for specified count
             logging.log(logging.INFO, "for specified  %(count)d iterations" % {"count": self.n})
@@ -73,7 +74,6 @@ class SimTask:
                     logging.log(logging.INFO, "found  0 overflows for %(method)s method in %(iter)d iteration."
                                               " Terminating" % {"method": self.method, "iter": self.iteration})
                     return
-
         else:
             # until no malfunctions stops
             counter = 0;
@@ -149,45 +149,47 @@ class SimTask:
         solverResult = None
         try:
             solverResult = runpf(case, ppopt=ppoption())
-        except ValueError:
-            raise SimException
+            # get from the results branches with counters if there is more branches between two buses
+            counters = []
+            i = 0
+            for branch in solverResult[0]["branch"]:
+                fromBusTemp = int(branch[constOut["branch"]["fromBus"]])
+                toBusTemp = int(branch[constOut["branch"]["toBus"]])
+                pIn = branch[constOut["branch"]["Pin"]]
+                first_or_default = next(
+                    (x for x in counters if x["fromBus"] == fromBusTemp and x["toBus"] == toBusTemp),
+                    None)
+                if first_or_default is None:
+                    counters.append({"fromBus": fromBusTemp, "toBus": toBusTemp, "counter": 0, "Pin": pIn, "index": i})
+                else:
+                    counters.append(
+                        {"fromBus": fromBusTemp, "toBus": toBusTemp, "counter": first_or_default["counter"] + 1,
+                         "Pin": pIn,
+                         "index": i})
+                i = i + 1
 
-        # get from the results branches with counters if there is more branches between two buses
-        counters = []
-        i = 0
-        for branch in solverResult[0]["branch"]:
-            fromBusTemp = int(branch[constOut["branch"]["fromBus"]])
-            toBusTemp = int(branch[constOut["branch"]["toBus"]])
-            pIn = branch[constOut["branch"]["Pin"]]
-            first_or_default = next((x for x in counters if x["fromBus"] == fromBusTemp and x["toBus"] == toBusTemp),
-                                    None)
-            if first_or_default is None:
-                counters.append({"fromBus": fromBusTemp, "toBus": toBusTemp, "counter": 0, "Pin": pIn, "index": i})
-            else:
-                counters.append(
-                    {"fromBus": fromBusTemp, "toBus": toBusTemp, "counter": first_or_default["counter"] + 1, "Pin": pIn,
-                     "index": i})
-            i = i + 1
+            # for all vertices assign 0.0 for Pin and 0.0 for Pg
+            for v in graph.vs:
+                v["Pin"] = 0.0
+                v["Pout"] = 0.0
+                v["Pg"] = 0.0
+            for gen in solverResult[0]["gen"]:
+                busName = "Bus_" + str(int(gen[0]))
+                graph.vs.find(busName)["Pg"] = gen[1]
 
-        # for all vertices assign 0.0 for Pin and 0.0 for Pg
-        for v in graph.vs:
-            v["Pin"] = 0.0
-            v["Pout"] = 0.0
-            v["Pg"]=0.0
-        for gen in solverResult[0]["gen"]:
-            busName = "Bus_"+str(int(gen[0]))
-            graph.vs.find(busName)["Pg"]=gen[1]
-
-        for c in counters:
-            f = graph.vs.find("Bus_" + str(c["fromBus"]))
-            t = graph.vs.find("Bus_" + str(c["toBus"]))
-            graph.es.select(_source=f.index, _target=t.index)[c["counter"]]["Pin"] = c["Pin"]
-            if (c["Pin"] > 0):
-                t["Pin"] += c["Pin"]
-                f["Pout"] += c["Pin"]
-            else:
-                f["Pin"] += math.fabs(c["Pin"])
-                t["Pout"] += math.fabs(c["Pin"])
+            for c in counters:
+                f = graph.vs.find("Bus_" + str(c["fromBus"]))
+                t = graph.vs.find("Bus_" + str(c["toBus"]))
+                graph.es.select(_source=f.index, _target=t.index)[c["counter"]]["Pin"] = c["Pin"]
+                if (c["Pin"] > 0):
+                    t["Pin"] += c["Pin"]
+                    f["Pout"] += c["Pin"]
+                else:
+                    f["Pin"] += math.fabs(c["Pin"])
+                    t["Pout"] += math.fabs(c["Pin"])
+        except ValueError as ve:
+            logging.error(ve.message)
+            raise SimException(ve.message)
 
     # returns vertices and edges indexes over c, with p to be next
     def findMalfunctions(self, graph, previousGraph, cascadeTriggerInPreviousStep):
