@@ -63,13 +63,12 @@ class SimProcessor(multiprocessing.Process):
     # def run(self):
     def run(self):
         while True:
-            # grab task from input queue
-            simTask = self.inputQueue.get()
-            logging.log(logging.INFO,
-                        "starting %(method)s method %(iter)d iteration" % {"method": simTask.method,
-                                                                           "iter": simTask.iteration})
-
             try:
+                # grab task from input queue
+                simTask = self.inputQueue.get()
+                logging.log(logging.INFO,
+                            "starting %(method)s method %(iter)d iteration" % {"method": simTask.method,
+                                                                               "iter": simTask.iteration})
                 simTask.run()
                 result = simTask.getResult()
                 logging.log(logging.INFO,
