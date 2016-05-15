@@ -90,7 +90,7 @@ class SimTask:
                         logging.log(logging.INFO, "found  0 overflows for %(method)s method in %(iter)d iteration, try %(try)d."
                                               " Terminating" % {"method": self.method, "iter": self.iteration,
                                                                 "try": counter})
-                    return
+                        return
                 except SimException as e:
                     logging.error(e)
                     raise e
