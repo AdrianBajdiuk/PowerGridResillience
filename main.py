@@ -67,7 +67,7 @@ def main():
 
     with open(configJSON) as config_data:
         configDict = json.load(config_data)
-
+    config_data.close()
     simTasks = []
     simN = configDict["N"]
     simAlpha = configDict["alpha"]
