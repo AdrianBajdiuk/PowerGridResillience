@@ -242,10 +242,10 @@ class ESPEdge(ESPBase):
 
         vs = self.graphCopy.vs
         espResult = np.zeros((len(self.graphCopy.es.indices), len(vs)), dtype=float)
-        num_cores = self.processesCount
+        # num_cores = self.processesCount
         for vertex in vs:
             logging.log(logging.INFO, "starting walks for : " + str(vertex))
-            walks = Parallel(n_jobs=num_cores)(
+            walks = Parallel(n_jobs=self.M)(
                 delayed(createRandomWalk)(self.graphCopy, vertex.index, self.H) for i in range(0, self.M))
             for walk in walks:
                 for i, e in enumerate([row[1] for row in walk]):
