@@ -60,7 +60,7 @@ class SimTask:
             self.graph, self.case, self.graphVisual, self.cascadeTrigger = self.destroyGraph(self.graph, self.case,
                                                                                              self.graphVisual)
         except SimException as e:
-            logging.error(e.message)
+            logging.error(e)
             raise e
         if not (self.n is None):
             # for specified count
@@ -92,7 +92,7 @@ class SimTask:
                                                                 "try": counter})
                     return
                 except SimException as e:
-                    logging.error(e.message)
+                    logging.error(e)
                     raise e
 
     def simulate(self, counter, malfunctions):
@@ -188,7 +188,7 @@ class SimTask:
                     f["Pin"] += math.fabs(c["Pin"])
                     t["Pout"] += math.fabs(c["Pin"])
         except ValueError as ve:
-            logging.error(ve.message)
+            logging.error(ve)
             raise SimException(ve.message)
 
     # returns vertices and edges indexes over c, with p to be next
