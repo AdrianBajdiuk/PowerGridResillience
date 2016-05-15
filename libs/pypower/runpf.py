@@ -302,8 +302,8 @@ def runpf(casedata=None, ppopt=None, fname='', solvedcase=''):
             if fd is not None:
                 printpf(results, fd, ppopt)
                 fd.close()
-    else:
-        printpf(results, stdout, ppopt)
+    # else:
+    #     printpf(results, stdout, ppopt)
 
     ## save solved case
     if solvedcase:
