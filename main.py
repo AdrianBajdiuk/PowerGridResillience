@@ -36,7 +36,7 @@ logging.basicConfig(level=logging.INFO,
 console = logging.StreamHandler()
 console.setLevel(logging.INFO)
 # set a format which is simpler for console use
-formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+formatter = logging.Formatter('%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s] %(message)s',datefmt='%m-%d %H:%M:%S')
 # tell the handler to use this format
 console.setFormatter(formatter)
 # add the handler to the root logger

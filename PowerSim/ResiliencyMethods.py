@@ -35,8 +35,9 @@ class SimProcessor(multiprocessing.Process):
                     logging.log(logging.INFO,
                                 "starting %(method)s method %(iter)d iteration" % {"method": simTask.method,
                                                                                    "iter": simTask.iteration})
-                    simTask.run()
+                    simTask.runSimulation()
                     result = simTask.getResult()
+                    logging.log(logging.INFO,"am alive?" + self.is_alive())
                     logging.log(logging.INFO,
                                 "finished with succes %(method)s method %(iter)d iteration with result: LCC ratio %(lcg)f , PfPd ratio %(pf)f" %
                                 {"method": simTask.method, "iter": simTask.iteration, "lcg": result[1],
@@ -108,6 +109,7 @@ class MethodBase(multiprocessing.Process):
             # self.simProcessors.append(simP)
             simP.daemon = True
             simP.start()
+            time.sleep(2)
 
         # wait for all tasks to finish
         self.tasks.join()

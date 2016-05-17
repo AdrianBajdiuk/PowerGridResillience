@@ -1,17 +1,13 @@
 {
-  "N":1,
+  "N":4,
   "alpha":0.005,
   "vStep":45,
   "simOutput":"simulations",
   "simProcessorsCount": 4,
   "simTasks":[
     {
-      "methodName":"ESPEdge",
-      "destroyMethod":"VMaxK",
-      "improvement":150,
-      "improvementCount":230,
-      "H":23,
-      "M":43
+      "methodName":"base",
+      "destroyMethod":"VMaxK"
     }
     ]
 }

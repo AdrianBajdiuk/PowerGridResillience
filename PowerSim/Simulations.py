@@ -48,7 +48,7 @@ class SimTask:
                                                                                  "iter": self.iteration})
         return not result
 
-    def run(self):
+    def runSimulation(self):
 
         logging.log(logging.INFO,
                     "starting %(method)s method simulation in %(iter)d iteration" % {"method": self.method, "iter": self.iteration})
