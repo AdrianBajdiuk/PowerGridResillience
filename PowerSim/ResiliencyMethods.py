@@ -28,6 +28,9 @@ class SimProcessor(multiprocessing.Process):
     def run(self):
         while True:
             if not self.inputQueue.empty():
+                logging.log(logging.INFO,
+                            "current simTasks queue size is %(size)d, process name %(name)s" % {"size": self.inputQueue.qsize(),
+                                                                               "name": self.name})
                 # grab task from input queue
                 simTask = None
                 try:
@@ -59,6 +62,11 @@ class SimProcessor(multiprocessing.Process):
                 finally:
                     self.inputQueue.task_done()
             else:
+                logging.log(logging.INFO,
+                            "current simTasks queue size is %(size)d, process name %(name)s" % {
+                                "size": self.inputQueue.qsize(),
+                                "name": self.name})
+                logging.log(logging.INFO,"returning from process: %(name)"%{"name": self.name})
                 return
 
 
