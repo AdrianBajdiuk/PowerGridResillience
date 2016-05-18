@@ -75,7 +75,7 @@ available from: http://www.gurobi.com/''')
 ]
 
 OUTPUT_OPTIONS = [
-    ('verbose', 1, '''amount of progress info printed:
+    ('verbose', 0, '''amount of progress info printed:
 0 - print no progress info,
 1 - print a little progress info,
 2 - print a lot of progress info,

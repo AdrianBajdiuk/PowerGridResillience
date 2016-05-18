@@ -10,11 +10,6 @@ import sys
 import numpy as np
 from GraphCaseUpdates import deleteVertice,deleteEdge
 
-# logging.basicConfig(filename="sim.log", level=logging.INFO,
-#                     format='%(asctime)s %(levelname)-8s %(message)s',
-#                     datefmt='%a, %d %b %Y %H:%M:%S')
-
-
 class SimTask:
     def __init__(self, methodName, iteration, graphCopy,caseCopy, n=None, v=None):
         self.method = methodName

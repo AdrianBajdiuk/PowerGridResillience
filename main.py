@@ -2,10 +2,7 @@ import os
 import sys
 import json
 from optparse import OptionParser
-import logging
-import const
-from time import strftime,gmtime
-
+from Helper import configureBasicLogger
 branchesFileName = "branches.csv"
 busesFileName = "buses.csv"
 generatorsFileName = "generators" \
@@ -22,28 +19,10 @@ from Helper import copyCase
 from PowerSim.ResiliencyMethods import MethodBase, ESPEdge, ESPVertex, RandomEdge, RandomVertex
 import logging
 
-fileLogPath = "sim_"+strftime("%H-%M", gmtime())+".log"
-if not os.path.exists(fileLogPath):
-    flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
-    os.open(fileLogPath, flags)
-# set up logging to file - see previous section for more details
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s",
-                    datefmt='%m-%d %H:%M',
-                    filename=fileLogPath,
-                    filemode='w')
-# define a Handler which writes INFO messages or higher to the sys.stderr
-console = logging.StreamHandler()
-console.setLevel(logging.INFO)
-# set a format which is simpler for console use
-formatter = logging.Formatter('%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s] %(message)s',datefmt='%m-%d %H:%M:%S')
-# tell the handler to use this format
-console.setFormatter(formatter)
-# add the handler to the root logger
-logging.getLogger('').addHandler(console)
-
 
 def main():
+    configureBasicLogger(currentDir)
+
     parser = OptionParser()
     parser.add_option("-i", "--input", dest="input", default="data", help="folder with input data")
     parser.add_option("-c", "--config", dest="config", default="config.json", help="filename with config data")

@@ -4,7 +4,9 @@ from numpy import array, vstack, copy
 from random import randint, choice
 from itertools import islice, takewhile
 from collections import Counter
-
+from time import strftime,gmtime
+import logging
+import os
 
 # "bus":{"index":0,"type":1,"Pd":2,"Qd":3,"Vm":7,"Va":8,"baseKV":9,"area":6}
 # "gen":{"busIndex":0,"Pq":1,"Qg":2,"Qmax":3,"Qmin":4,"Vg":5,"Pmax":8,"Pmin":9},
@@ -90,3 +92,28 @@ def increaseEdgeC(edge,graph,increaseValue):
     graph.es.find(int(edge))["c"] += increaseValue
 def increaseVertexC(vertex,graph,increaseValue):
     graph.vs.find(int(vertex))["c"] += increaseValue
+
+def configureBasicLogger(logDir):
+    # start logger:
+    fileLogPath = "sim_" + strftime("%H-%M", gmtime()) + ".log"
+    fileLogPath = os.path.join(logDir, fileLogPath)
+    # if not os.path.exists(fileLogPath):
+    #     flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
+    #     os.open(fileLogPath, flags)
+    #     os.close(fileLogPath)
+    # set up logging to file - see previous section for more details
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s [%(processName)-12.12s] [%(levelname)-5.5s]  %(message)s",
+                        datefmt='%m-%d %H:%M:%S',
+                        filename=fileLogPath,
+                        filemode='w')
+    # define a Handler which writes INFO messages or higher to the sys.stderr
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    # set a format which is simpler for console use
+    formatter = logging.Formatter('%(asctime)s [%(processName)-12.12s] [%(levelname)-5.5s] %(message)s',
+                                  datefmt='%m-%d %H:%M:%S')
+    # tell the handler to use this format
+    console.setFormatter(formatter)
+    # add the handler to the root logger
+    logging.getLogger().addHandler(console)

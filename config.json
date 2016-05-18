@@ -2,7 +2,7 @@
   "N":4,
   "alpha":0.005,
   "vStep":45,
-  "simOutput":"simulations",
+  "simOutput":"simulationsTemp",
   "simProcessorsCount": 4,
   "simTasks":[
     {
