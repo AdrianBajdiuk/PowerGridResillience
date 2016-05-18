@@ -84,7 +84,7 @@ def simProcess(inputQueue, outputQueue, logQueue):
         simTask = None
         try:
             simTask = inputQueue.get()
-            if simTask is not None and type(simTask) is SimTask:
+            if simTask is not None :
                 logger.log(logging.INFO,
                            "starting %(method)s method %(iter)d iteration" % {"method": simTask.method,
                                                                               "iter": simTask.iteration})
