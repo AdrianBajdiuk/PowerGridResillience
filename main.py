@@ -3,6 +3,8 @@ import sys
 import json
 from optparse import OptionParser
 from Helper import configureBasicLogger
+
+
 branchesFileName = "branches.csv"
 busesFileName = "buses.csv"
 generatorsFileName = "generators" \
