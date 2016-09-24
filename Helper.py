@@ -97,7 +97,8 @@ def configureBasicLogger(logDir):
     # start logger:
     fileLogPath = "sim_" + strftime("%H-%M", gmtime()) + ".log"
     fileLogPath = os.path.join(logDir, fileLogPath)
-    # if not os.path.exists(fileLogPath):
+    if not os.path.exists(logDir):
+        os.makedirs(logDir)
     #     flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
     #     os.open(fileLogPath, flags)
     #     os.close(fileLogPath)

@@ -158,8 +158,9 @@ def randomizeGraphAndCase(i, methodName, graphCopy, caseCopy, alpha):
 
 
 class MethodBase(multiprocessing.Process):
-    def __init__(self, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, vStep=None):
+    def __init__(self,simName, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, vStep=None):
         multiprocessing.Process.__init__(self)
+        self.simName = simName
         self.outputDir = outputDir
         self.graphCopy = graphCopy
         self.caseCopy = caseCopy
@@ -183,7 +184,7 @@ class MethodBase(multiprocessing.Process):
 
         # logging queue
         logQueue = multiprocessing.Queue(-1)
-        simLogPath = os.path.join(self.outputDir, self.methodName + "_" + strftime("%H-%M", gmtime()) + ".log")
+        simLogPath = os.path.join(self.outputDir, self.simName + "_" + strftime("%H-%M", gmtime()) + ".log")
         logListener = multiprocessing.Process(target=listener_process, args=(logQueue, self.outputDir, simLogPath))
         logListener.daemon = True
         logListener.start()
@@ -264,7 +265,7 @@ class MethodBase(multiprocessing.Process):
     def serializeCSV(self, csvResult):
         if not os.path.exists(self.outputDir):
             os.makedirs(self.outputDir)
-        csvFileName = self.methodName + "_" + self.serializationTime + ".csv"
+        csvFileName = self.simName + "_" + self.serializationTime + ".csv"
         outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
         with open(outputCSVFilePath, 'wb') as outputCSVFile:
             fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'method', 'destroyMethod', 'alpha']
@@ -289,10 +290,10 @@ class MethodBase(multiprocessing.Process):
 
 # class base for ESP from random_walkers
 class ESPBase(MethodBase):
-    def __init__(self, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
+    def __init__(self, simName,processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
                  improvedRatio,
                  improvementRatio, vStep=None):
-        MethodBase.__init__(self, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod,
+        MethodBase.__init__(self, simName,processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod,
                             vStep)
         self.H = H
         self.M = M
@@ -309,7 +310,7 @@ class ESPBase(MethodBase):
     def serializeCSV(self, csvResult):
         if not os.path.exists(self.outputDir):
             os.makedirs(self.outputDir)
-        csvFileName = self.methodName + "_" + self.serializationTime + ".csv"
+        csvFileName = self.simName + "_" + self.serializationTime + ".csv"
         outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
         with open(outputCSVFilePath, 'wb') as outputCSVFile:
             fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'H', 'M', 'improvementRatio', 'improvedRatio', 'method',
@@ -325,10 +326,10 @@ class ESPBase(MethodBase):
 
 
 class ESPEdge(ESPBase):
-    def __init__(self, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvedRatio,
+    def __init__(self, simName,processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvedRatio,
                  improvementRatio,
                  vStep=None):
-        ESPBase.__init__(self, processesCount, outputDir, 'ESP edge', N, graphCopy, caseCopy, alpha, destroyMethod, H,
+        ESPBase.__init__(self, simName, processesCount, outputDir, 'ESP edge', N, graphCopy, caseCopy, alpha, destroyMethod, H,
                          M,
                          improvedRatio, improvementRatio, vStep)
 
@@ -338,11 +339,12 @@ class ESPEdge(ESPBase):
 
         vs = self.graphCopy.vs
         espResult = np.zeros((len(self.graphCopy.es.indices), len(vs)), dtype=float)
+        h = floor(self.H * self.graphCopy.average_path_length(directed=False))
         # num_cores = self.processesCount
         for vertex in vs:
             logging.log(logging.INFO, "starting walks for : " + str(vertex))
             walks = Parallel(n_jobs=self.M)(
-                delayed(createRandomWalk)(self.graphCopy, vertex.index, self.H) for i in range(0, self.M))
+                delayed(createRandomWalk)(self.graphCopy, vertex.index, h) for i in range(0, self.M))
             for walk in walks:
                 for i, e in enumerate([row[1] for row in walk]):
                     if (e is not None and i != (len(walk) - 1)):
@@ -369,10 +371,10 @@ class ESPEdge(ESPBase):
 
 
 class ESPVertex(ESPBase):
-    def __init__(self, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvedRatio,
+    def __init__(self, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvedRatio,
                  improvementRatio,
                  vStep=None):
-        ESPBase.__init__(self, processesCount, outputDir, 'ESP vertex', N, graphCopy, caseCopy, alpha, destroyMethod, H,
+        ESPBase.__init__(self, simName, processesCount, outputDir, 'ESP vertex', N, graphCopy, caseCopy, alpha, destroyMethod, H,
                          M,
                          improvedRatio, improvementRatio, vStep)
 
@@ -385,8 +387,9 @@ class ESPVertex(ESPBase):
         num_cores = self.processesCount
         for vertex in vs:
             logging.log(logging.INFO, "starting walks for : " + str(vertex))
+            h = floor(self.H * self.graphCopy.average_path_length(directed=False))
             walks = Parallel(n_jobs=num_cores)(
-                delayed(createRandomWalk)(self.graphCopy, vertex.index, self.H) for i in range(0, self.M))
+                delayed(createRandomWalk)(self.graphCopy, vertex.index, h) for i in range(0, self.M))
             for walk in walks:
                 for i, v in enumerate([row[0] for row in walk]):
                     if (v is not None and v != vertex.index):
@@ -408,10 +411,10 @@ class ESPVertex(ESPBase):
 
 
 class RandomEdge(MethodBase):
-    def __init__(self, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
+    def __init__(self, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
                  improvementRatio,
                  vStep=None):
-        MethodBase.__init__(self, processesCount, outputDir, 'Random edge', N, graphCopy, caseCopy, alpha,
+        MethodBase.__init__(self, simName, processesCount, outputDir, 'Random edge', N, graphCopy, caseCopy, alpha,
                             destroyMethod, vStep)
         self.improvedRatio = improvedRatio
         self.improvementRatio = improvementRatio
@@ -433,7 +436,7 @@ class RandomEdge(MethodBase):
     def serializeCSV(self, csvResult):
         if not os.path.exists(self.outputDir):
             os.makedirs(self.outputDir)
-        csvFileName = self.methodName + "_" + self.serializationTime + ".csv"
+        csvFileName = self.simName + "_" + self.serializationTime + ".csv"
         outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
         with open(outputCSVFilePath, 'wb') as outputCSVFile:
             fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'improvementRatio', 'improvedRatio', 'method',
@@ -449,10 +452,10 @@ class RandomEdge(MethodBase):
 
 
 class RandomVertex(MethodBase):
-    def __init__(self, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
+    def __init__(self, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
                  improvementRatio,
                  vStep=None):
-        MethodBase.__init__(self, outputDir, 'Random vertex', N, graphCopy, caseCopy, alpha, destroyMethod, vStep)
+        MethodBase.__init__(self,simName, processesCount, outputDir, 'Random vertex', N, graphCopy, caseCopy, alpha, destroyMethod, vStep)
         self.improvedRatio = improvedRatio
         self.improvementRatio = improvementRatio
 
@@ -473,7 +476,7 @@ class RandomVertex(MethodBase):
     def serializeCSV(self, csvResult):
         if not os.path.exists(self.outputDir):
             os.makedirs(self.outputDir)
-        csvFileName = self.methodName + "_" + self.serializationTime + ".csv"
+        csvFileName = self.simName + "_" + self.serializationTime + ".csv"
         outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
         with open(outputCSVFilePath, 'wb') as outputCSVFile:
             fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'improvementRatio', 'improvedRatio', 'method',

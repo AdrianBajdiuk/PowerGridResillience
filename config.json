@@ -1,13 +1,19 @@
 {
-  "N":4,
-  "alpha":0.005,
-  "vStep":45,
-  "simOutput":"simulationsTemp",
+  "N": 4,
+  "alpha": 0.005,
+  "vStep": 45,
+  "simOutput": "simulationsTemp",
   "simProcessorsCount": 4,
-  "simTasks":[
+  "simTasks": [
     {
-      "methodName":"base",
-      "destroyMethod":"VMaxK"
+      "methodName": "ESPVertex",
+      "destroyMethod": "VMaxK",
+      "simName": "ESPVertex-i-0_002-ic-0_05",
+      "destroyMethod": "VMaxK",
+      "improvement": 0.002,
+      "improvementCount": 0.05,
+      "H":1,
+      "M":23
     }
-    ]
+  ]
 }
