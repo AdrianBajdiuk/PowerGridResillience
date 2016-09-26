@@ -72,7 +72,7 @@ def main():
                     configFile.close()
                 for dir in datas:
                     datName = os.path.basename(dir)
-                    writeSingleRunScript(startingScript, options.mem,options.processors,"short",configFileOutput,configFileName,dir, simName+"_"+datName+".sh",allRunScripts)
+                    writeSingleRunScript(startingScript, options.mem,options.processors,"main",configFileOutput,configFileName,dir, simName+"_"+datName+".sh",allRunScripts)
     with open(startAllName,'w') as startAllFile:
         for script in allRunScripts:
             startAllFile.write("." + script+"\n")
