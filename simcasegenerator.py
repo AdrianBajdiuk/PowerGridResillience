@@ -95,10 +95,10 @@ def writeSingleRunScript(startingScript,mem,proc, queueName,outputDir,configFile
         #
         # ###############################
         scriptFile.write("##################file.sh#######\n")
-        scriptFile.write("# !/bin/bash\n")
-        scriptFile.write("# PBS -l walltime="+walltime+"\n")
-        scriptFile.write("# PBS -l select=1:ncpus="+str(proc)+":mem="+str(mem)+"m\n")
-        scriptFile.write("# PBS -q "+queueName+"\n\n")
+        scriptFile.write("#!/bin/bash\n")
+        scriptFile.write("#PBS -l walltime="+walltime+"\n")
+        scriptFile.write("#PBS -l select=1:ncpus="+str(proc)+":mem="+str(mem)+"m\n")
+        scriptFile.write("#PBS -q "+queueName+"\n\n")
         scriptFile.write("module load python\n\n")
         scriptFile.write("python "+startingScript+" -c "+configFilePath+"-d "+dataPath+"\n\n")
         scriptFile.write("###############################")
