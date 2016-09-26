@@ -45,7 +45,7 @@ def main():
     for i in range(0,countIP):
         improvedRatio = (i + 1) * cStep
         for j in range(0,countI):
-            improvement = (i+1)* (iStep)
+            improvement = (j+1)* (iStep)
             for m in methods:
                 improvementS = str(improvement).replace(".","_")
                 improvedRatioS = str(improvedRatio).replace(".", "_")
