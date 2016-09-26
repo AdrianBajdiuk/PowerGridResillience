@@ -30,8 +30,8 @@ def main():
     countI = options.countI
     probes = options.probes
     processors = options.processors
-    cStep = options.cStep
-    iStep = options.iStep
+    cStep = float(options.cStep)
+    iStep = float(options.iStep)
     methods = ["RandomEdge","RandomVertex","ESPEdge","ESPVertex"]
     allRunScripts = []
     startingScript = options.main if os.path.isabs(options.main) else os.path.join(currentDir, options.main)
