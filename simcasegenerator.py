@@ -2,7 +2,10 @@ import sys,os
 import optparse
 import time
 import json
+import logging
+from Helper import configureBasicLogger
 def main():
+    configureBasicLogger("log")
     parser = optparse.OptionParser()
     parser.add_option("-s", "--start", dest="main", default="main.py",
                       help="main script")
@@ -22,6 +25,7 @@ def main():
     (options, args) = parser.parse_args()
     currentDir = os.path.dirname(os.path.abspath(__file__))
     dataDir = options.data if os.path.isabs(options.data) else os.path.join(currentDir,options.data)
+    logging.info("datas dir:  " + dataDir)
     datas = [x[0] for x in os.walk(dataDir)][1:]
     #get parsed options:
     configOutput = options.output if os.path.isabs(options.output) else os.path.join(currentDir,options.output)
@@ -75,34 +79,28 @@ def main():
                     writeSingleRunScript(startingScript, options.mem,options.processors,"main",configFileOutput,configFileName,dir, simName+"_"+datName+".sh",allRunScripts)
     with open(startAllName,'w') as startAllFile:
         for script in allRunScripts:
-            startAllFile.write("." + script+"\n")
+            startAllFile.write("qsub " + script+"\n")
         startAllFile.close()
 
 
 def writeSingleRunScript(startingScript,mem,proc, queueName,outputDir,configFilePath,dataPath,scriptName,registry,walltime="20:00:00"):
     outputFileName = os.path.join(outputDir,scriptName)
+    logging.info("trying to create script "+scriptName)
+    if not os.path.exists(outputDir):
+        os.makedirs(outputDir)
+
     with open(outputFileName,'w') as scriptFile:
-        #
-        # ##################file.sh#######
-        # # !/bin/bash
-        # # PBS -l walltime=01:00:10
-        # # PBS -l select=5:ncpus=6:mem=1000m
-        # # PBS -q main
-        #
-        # module load python
-        #
-        # python PowerGridResillience/main.py -c PowerGridResillience/config3.json
-        #
-        # ###############################
+
         scriptFile.write("##################file.sh#######\n")
         scriptFile.write("#!/bin/bash\n")
         scriptFile.write("#PBS -l walltime="+walltime+"\n")
         scriptFile.write("#PBS -l select=1:ncpus="+str(proc)+":mem="+str(mem)+"m\n")
         scriptFile.write("#PBS -q "+queueName+"\n\n")
         scriptFile.write("module load python\n\n")
-        scriptFile.write("python "+startingScript+" -c "+configFilePath+"-d "+dataPath+"\n\n")
+        scriptFile.write("python "+startingScript+" -c "+configFilePath+" -d "+dataPath+"\n\n")
         scriptFile.write("###############################")
         scriptFile.close()
+    logging.info("created script " + scriptName)
     registry.append(outputFileName)
 
 
