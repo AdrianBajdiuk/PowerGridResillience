@@ -158,11 +158,13 @@ def randomizeGraphAndCase(i, methodName, graphCopy, caseCopy, alpha):
 
 
 class MethodBase(multiprocessing.Process):
-    def __init__(self, simName, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod,
+    def __init__(self, dataName, simName, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod,
                  vStep=None):
         multiprocessing.Process.__init__(self)
+        self.dataName = dataName
         self.simName = simName
-        self.outputDir = outputDir
+        dataName = dataName if not os.path.isabs(dataName) else os.path.basename(dataName)
+        self.outputDir = os.path.join(outputDir,dataName)
         self.graphCopy = graphCopy
         self.caseCopy = caseCopy
         self.N = N
@@ -291,11 +293,11 @@ class MethodBase(multiprocessing.Process):
 
 # class base for ESP from random_walkers
 class ESPBase(MethodBase):
-    def __init__(self, simName, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, H,
+    def __init__(self,dataName, simName, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, H,
                  M,
                  improvedRatio,
                  improvementRatio, vStep=None):
-        MethodBase.__init__(self, simName, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha,
+        MethodBase.__init__(self,dataName, simName, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha,
                             destroyMethod,
                             vStep)
         self.H = H
@@ -338,11 +340,11 @@ class ESPBase(MethodBase):
 
 
 class ESPEdge(ESPBase):
-    def __init__(self, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
+    def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
                  improvedRatio,
                  improvementRatio,
                  vStep=None):
-        ESPBase.__init__(self, simName, processesCount, outputDir, 'ESP edge', N, graphCopy, caseCopy, alpha,
+        ESPBase.__init__(self,dataName, simName, processesCount, outputDir, 'ESP edge', N, graphCopy, caseCopy, alpha,
                          destroyMethod, H,
                          M,
                          improvedRatio, improvementRatio, vStep)
@@ -391,11 +393,11 @@ class ESPEdge(ESPBase):
 
 
 class ESPVertex(ESPBase):
-    def __init__(self, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
+    def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
                  improvedRatio,
                  improvementRatio,
                  vStep=None):
-        ESPBase.__init__(self, simName, processesCount, outputDir, 'ESP vertex', N, graphCopy, caseCopy, alpha,
+        ESPBase.__init__(self,dataName, simName, processesCount, outputDir, 'ESP vertex', N, graphCopy, caseCopy, alpha,
                          destroyMethod, H,
                          M,
                          improvedRatio, improvementRatio, vStep)
@@ -439,10 +441,10 @@ class ESPVertex(ESPBase):
 
 
 class RandomEdge(MethodBase):
-    def __init__(self, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
+    def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
                  improvementRatio,
                  vStep=None):
-        MethodBase.__init__(self, simName, processesCount, outputDir, 'Random edge', N, graphCopy, caseCopy, alpha,
+        MethodBase.__init__(self,dataName, simName, processesCount, outputDir, 'Random edge', N, graphCopy, caseCopy, alpha,
                             destroyMethod, vStep)
         self.improvedRatio = improvedRatio
         self.improvementRatio = improvementRatio
@@ -489,10 +491,10 @@ class RandomEdge(MethodBase):
 
 
 class RandomVertex(MethodBase):
-    def __init__(self, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
+    def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
                  improvementRatio,
                  vStep=None):
-        MethodBase.__init__(self, simName, processesCount, outputDir, 'Random vertex', N, graphCopy, caseCopy, alpha,
+        MethodBase.__init__(self,dataName, simName, processesCount, outputDir, 'Random vertex', N, graphCopy, caseCopy, alpha,
                             destroyMethod, vStep)
         self.improvedRatio = improvedRatio
         self.improvementRatio = improvementRatio

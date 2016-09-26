@@ -71,7 +71,8 @@ def main():
                     json.dump(config,configFile)
                     configFile.close()
                 for dir in datas:
-                    writeSingleRunScript(startingScript, options.mem,options.processors,"short",configFileOutput,configFileName,dir, simName+".sh",allRunScripts)
+                    datName = os.path.basename(dir)
+                    writeSingleRunScript(startingScript, options.mem,options.processors,"short",configFileOutput,configFileName,dir, simName+"_"+datName+".sh",allRunScripts)
     with open(startAllName,'w') as startAllFile:
         for script in allRunScripts:
             startAllFile.write("." + script+"\n")

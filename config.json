@@ -1,5 +1,5 @@
 {
-  "N": 4,
+  "N": 100,
   "alpha": 0.005,
   "vStep": 45,
   "simOutput": "simulationsTemp",

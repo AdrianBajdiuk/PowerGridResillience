@@ -64,35 +64,36 @@ def main():
         simTask = None
         destroyMethod = task["destroyMethod"]
         simName = task["simName"]
+        dataName = os.path.basename(options.input)
         if task["methodName"] == "RandomEdge":
             outputDir = os.path.join(simOutputDir, simName)
-            simTask = RandomEdge(simName,simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod,
+            simTask = RandomEdge(dataName,simName,simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod,
                                  task["improvementCount"], task["improvement"], simVStep)
         elif task["methodName"] == "RandomVertex":
             outputDir = os.path.join(simOutputDir, simName)
-            simTask = RandomVertex(simName,simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod,
+            simTask = RandomVertex(dataName,simName,simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod,
                                    task["improvementCount"], task["improvement"], simVStep)
         elif task["methodName"] == "ESPEdge":
             outputDir = os.path.join(simOutputDir, simName)
-            simTask = ESPEdge(simName,simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, task["H"],
+            simTask = ESPEdge(dataName,simName,simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, task["H"],
                               task["M"],
                               task["improvementCount"], task["improvement"], simVStep)
         elif task["methodName"] == "ESPVertex":
             outputDir = os.path.join(simOutputDir, simName)
-            simTask = ESPVertex(simName,simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, task["H"],
+            simTask = ESPVertex(dataName,simName,simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, task["H"],
                                 task["M"],
                                 task["improvementCount"], task["improvement"], simVStep)
         elif task["methodName"] == "base":
             simName = "base"
             outputDir = os.path.join(simOutputDir, simName)
-            simTask = MethodBase(simName,simProcessorsCount,outputDir,simName, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, simVStep)
+            simTask = MethodBase(dataName,simName,simProcessorsCount,outputDir,simName, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, simVStep)
 
         if simTask is not None:
             simTasks.append((simName, simTask))
 
 
     for simTask in simTasks:
-        logging.log(logging.INFO, "starting %s task" % (simTask[0]))
+        logging.log(logging.INFO, "starting %s task with data %s" % (simTask[0],simTask[1].dataName))
         simTask[1].start()
         simTask[1].join()
         logging.log(logging.INFO, "finished %s task with code %d" % (simTask[0],simTask[1].exitcode))
