@@ -75,20 +75,20 @@ available from: http://www.gurobi.com/''')
 ]
 
 OUTPUT_OPTIONS = [
-    ('verbose', 0, '''amount of progress info printed:
+    ('verbose', 1, '''amount of progress info printed:
 0 - print no progress info,
 1 - print a little progress info,
 2 - print a lot of progress info,
 3 - print all progress info'''),
 
-    ('out_all', 0, '''controls printing of results:
+    ('out_all', -1, '''controls printing of results:
 -1 - individual flags control what prints,
 0 - don't print anything
     (overrides individual flags),
 1 - print everything
     (overrides individual flags)'''),
 
-    ('out_sys_sum', True, 'print system summary'),
+    ('out_sys_sum', False, 'print system summary'),
 
     ('out_area_sum', False, 'print area summaries'),
 

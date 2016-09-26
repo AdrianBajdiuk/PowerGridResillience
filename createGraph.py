@@ -50,7 +50,7 @@ def createGraphAndCase(busesFileName, branchesFileName,generatorsFileName, desti
         # diff=index-counter
         # if diff>0:
         #     graph.add_vertices(diff)
-        baseKv = int(row['baseKv'])
+        baseKv = float(row['baseKv'])
         Vm = float(row['Vm'])
         Va = float(row['Va'])
         Pd = float(row['Pd'])

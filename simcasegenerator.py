@@ -71,14 +71,14 @@ def main():
                     json.dump(config,configFile)
                     configFile.close()
                 for dir in datas:
-                    writeSingleRunScript(startingScript, options.mem,options.processors,"main",configFileOutput,configFileName,dir, simName+".sh",allRunScripts)
+                    writeSingleRunScript(startingScript, options.mem,options.processors,"short",configFileOutput,configFileName,dir, simName+".sh",allRunScripts)
     with open(startAllName,'w') as startAllFile:
         for script in allRunScripts:
             startAllFile.write("." + script+"\n")
         startAllFile.close()
 
 
-def writeSingleRunScript(startingScript,mem,proc, queueName,outputDir,configFilePath,dataPath,scriptName,registry,walltime="15:00:00"):
+def writeSingleRunScript(startingScript,mem,proc, queueName,outputDir,configFilePath,dataPath,scriptName,registry,walltime="20:00:00"):
     outputFileName = os.path.join(outputDir,scriptName)
     with open(outputFileName,'w') as scriptFile:
         #

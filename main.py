@@ -5,9 +5,9 @@ from optparse import OptionParser
 from Helper import configureBasicLogger
 
 
-branchesFileName = "branchesTest.csv"
-busesFileName = "busesTest.csv"
-generatorsFileName = "generatorsTest" \
+branchesFileName = "branches.csv"
+busesFileName = "buses.csv"
+generatorsFileName = "generators" \
                      ".csv"
 destinationFileName = "powerGrid_graph"
 
@@ -19,6 +19,8 @@ sys.path.append(libsPath)
 import createGraph as cg
 from Helper import copyCase
 from PowerSim.ResiliencyMethods import MethodBase, ESPEdge, ESPVertex, RandomEdge, RandomVertex
+from pypower.api import runpf
+from runPfOptions import ppoption
 import logging
 
 

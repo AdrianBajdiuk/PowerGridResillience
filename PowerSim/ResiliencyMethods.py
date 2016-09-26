@@ -1,9 +1,9 @@
 import logging
 import multiprocessing
-from math import log,floor
+from math import log, floor
 import numpy as np
 from joblib import Parallel, delayed
-from Helper import copyCase,createRandomWalk,configureBasicLogger
+from Helper import copyCase, createRandomWalk, configureBasicLogger
 from Simulations import SimTask
 import copy_reg
 import types
@@ -84,7 +84,7 @@ def simProcess(inputQueue, outputQueue, logQueue):
         simTask = None
         try:
             simTask = inputQueue.get()
-            if simTask is not None :
+            if simTask is not None:
                 logger.log(logging.INFO,
                            "starting %(method)s method %(iter)d iteration" % {"method": simTask.method,
                                                                               "iter": simTask.iteration})
@@ -158,7 +158,8 @@ def randomizeGraphAndCase(i, methodName, graphCopy, caseCopy, alpha):
 
 
 class MethodBase(multiprocessing.Process):
-    def __init__(self,simName, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, vStep=None):
+    def __init__(self, simName, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod,
+                 vStep=None):
         multiprocessing.Process.__init__(self)
         self.simName = simName
         self.outputDir = outputDir
@@ -176,7 +177,6 @@ class MethodBase(multiprocessing.Process):
         self.serializationTime = time.strftime("%Y%m%d_%H-%M", time.localtime())
         self.simProcessors = []
         self.processesCount = processesCount
-
 
     def run(self):
 
@@ -197,14 +197,15 @@ class MethodBase(multiprocessing.Process):
 
         logging.log(logging.INFO,
                     "starting %(method)s method generation of %(iter)d probes" % {"method": self.methodName,
-                                                                                 "iter": self.N-1})
-        randomizedSimTasks = Parallel(n_jobs=self.processesCount,verbose=50)(
-            delayed(randomizeGraphAndCase)(i, self.methodName, self.graphCopy.copy(), copyCase(self.caseCopy), self.alpha)
+                                                                                  "iter": self.N - 1})
+        randomizedSimTasks = Parallel(n_jobs=self.processesCount, verbose=50)(
+            delayed(randomizeGraphAndCase)(i, self.methodName, self.graphCopy.copy(), copyCase(self.caseCopy),
+                                           self.alpha)
             for i in range(1, self.N))
 
         logging.log(logging.INFO,
                     "finished %(method)s method generation of %(iter)d probes" % {"method": self.methodName,
-                                                                                "iter": self.N - 1})
+                                                                                  "iter": self.N - 1})
 
         # for n in range(1, self.N):
         #     while True:
@@ -290,10 +291,12 @@ class MethodBase(multiprocessing.Process):
 
 # class base for ESP from random_walkers
 class ESPBase(MethodBase):
-    def __init__(self, simName,processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
+    def __init__(self, simName, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, H,
+                 M,
                  improvedRatio,
                  improvementRatio, vStep=None):
-        MethodBase.__init__(self, simName,processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod,
+        MethodBase.__init__(self, simName, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha,
+                            destroyMethod,
                             vStep)
         self.H = H
         self.M = M
@@ -313,23 +316,34 @@ class ESPBase(MethodBase):
         csvFileName = self.simName + "_" + self.serializationTime + ".csv"
         outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
         with open(outputCSVFilePath, 'wb') as outputCSVFile:
-            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'H', 'M', 'improvementRatio', 'improvedRatio', 'method',
+            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'H', 'M', 'improvementRatio', 'improvement',
+                          'improvedRatio', 'improvedCount', 'method',
                           'destroyMethod', 'alpha']
             writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
 
             writer.writeheader()
             [writer.writerow({'status': i[0], 'n': i[1], 'LCCRatio': i[2], 'PfPdRatio': i[3], 'H': self.H, 'M': self.M,
-                              'improvementRatio': self.improvementRatio, 'improvedRatio': self.improvedRatio,
+                              'improvementRatio': self.improvementRatio, 'improvement': self.getImprovement(),
+                              'improvedRatio': self.improvedRatio,
+                              'improvedCount': self.getImprovementCount(),
                               'method': self.methodName,
                               'destroyMethod': self.destroyMethod, 'alpha': self.alpha}) for i in csvResult]
         outputCSVFile.close()
 
+    def getImprovementCount(self):
+        return 0
+
+    def getImprovement(self):
+        return 0
+
 
 class ESPEdge(ESPBase):
-    def __init__(self, simName,processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvedRatio,
+    def __init__(self, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
+                 improvedRatio,
                  improvementRatio,
                  vStep=None):
-        ESPBase.__init__(self, simName, processesCount, outputDir, 'ESP edge', N, graphCopy, caseCopy, alpha, destroyMethod, H,
+        ESPBase.__init__(self, simName, processesCount, outputDir, 'ESP edge', N, graphCopy, caseCopy, alpha,
+                         destroyMethod, H,
                          M,
                          improvedRatio, improvementRatio, vStep)
 
@@ -352,8 +366,8 @@ class ESPEdge(ESPBase):
                         # logging.log(logging.INFO, "finished walks for : " + str(vertex))
         results = np.apply_along_axis(self.etropyRow, 1, espResult)
         # selected for improvement edge indices
-        improvementCount = floor(self.improvedRatio * len(self.graphCopy.es.indices))
-        improvement = floor(self.improvementRatio * sum(self.graphCopy.es["c"]))
+        improvementCount = self.getImprovementCount()
+        improvement = self.getImprovement()
 
         selectedResults = (-results).argsort()[:improvementCount]
         logging.log(logging.INFO, "selected results: " + str(selectedResults))
@@ -369,12 +383,20 @@ class ESPEdge(ESPBase):
                     "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
         return self.graphCopy, self.caseCopy
 
+    def getImprovementCount(self):
+        return floor(self.improvedRatio * len(self.graphCopy.es.indices))
+
+    def getImprovement(self):
+        return floor(self.improvementRatio * sum(self.graphCopy.es["c"]))
+
 
 class ESPVertex(ESPBase):
-    def __init__(self, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M, improvedRatio,
+    def __init__(self, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
+                 improvedRatio,
                  improvementRatio,
                  vStep=None):
-        ESPBase.__init__(self, simName, processesCount, outputDir, 'ESP vertex', N, graphCopy, caseCopy, alpha, destroyMethod, H,
+        ESPBase.__init__(self, simName, processesCount, outputDir, 'ESP vertex', N, graphCopy, caseCopy, alpha,
+                         destroyMethod, H,
                          M,
                          improvedRatio, improvementRatio, vStep)
 
@@ -409,6 +431,12 @@ class ESPVertex(ESPBase):
                     "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
         return self.graphCopy, self.caseCopy
 
+    def getImprovementCount(self):
+        return floor(self.improvedRatio * len(self.graphCopy.vs))
+
+    def getImprovement(self):
+        return floor(self.improvementRatio * sum(self.graphCopy.vs["c"]))
+
 
 class RandomEdge(MethodBase):
     def __init__(self, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
@@ -422,8 +450,8 @@ class RandomEdge(MethodBase):
     def improveResiliency(self):
         logging.log(logging.INFO,
                     "starting improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
-        improvementCount = floor(self.improvedRatio * len(self.graphCopy.es.indices))
-        improvement = floor(self.improvementRatio * sum(self.graphCopy.es["c"]))
+        improvementCount = self.getImprovementCount()
+        improvement = self.getImprovement()
         randomlyChosenEdges = np.random.choice(self.graphCopy.es.indices, improvementCount, replace=False)
         for res in randomlyChosenEdges:
             edge = self.graphCopy.es.find(int(res))
@@ -433,19 +461,28 @@ class RandomEdge(MethodBase):
                     "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
         return self.graphCopy, self.caseCopy
 
+    def getImprovementCount(self):
+        return floor(self.improvedRatio * len(self.graphCopy.es.indices))
+
+    def getImprovement(self):
+        return floor(self.improvementRatio * sum(self.graphCopy.es["c"]))
+
     def serializeCSV(self, csvResult):
         if not os.path.exists(self.outputDir):
             os.makedirs(self.outputDir)
         csvFileName = self.simName + "_" + self.serializationTime + ".csv"
         outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
         with open(outputCSVFilePath, 'wb') as outputCSVFile:
-            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'improvementRatio', 'improvedRatio', 'method',
+            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'improvementRatio', 'improvement', 'improvedRatio',
+                          'improvedCount', 'method',
                           'destroyMethod', 'alpha']
             writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
 
             writer.writeheader()
             [writer.writerow({'status': i[0], 'n': i[1], 'LCCRatio': i[2], 'PfPdRatio': i[3],
-                              'improvementRatio': self.improvementRatio, 'improvedRatio': self.improvedRatio,
+                              'improvementRatio': self.improvementRatio, 'improvement': self.getImprovement(),
+                              'improvedRatio': self.improvedRatio,
+                              'improvedCount': self.getImprovementCount(),
                               'method': self.methodName,
                               'destroyMethod': self.destroyMethod, 'alpha': self.alpha}) for i in csvResult]
         outputCSVFile.close()
@@ -455,15 +492,16 @@ class RandomVertex(MethodBase):
     def __init__(self, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
                  improvementRatio,
                  vStep=None):
-        MethodBase.__init__(self,simName, processesCount, outputDir, 'Random vertex', N, graphCopy, caseCopy, alpha, destroyMethod, vStep)
+        MethodBase.__init__(self, simName, processesCount, outputDir, 'Random vertex', N, graphCopy, caseCopy, alpha,
+                            destroyMethod, vStep)
         self.improvedRatio = improvedRatio
         self.improvementRatio = improvementRatio
 
     def improveResiliency(self):
         logging.log(logging.INFO,
                     "starting improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
-        improvementCount = floor(self.improvedRatio * len(self.graphCopy.vs.indices))
-        improvement = floor(self.improvementRatio * sum(self.graphCopy.vs["c"]))
+        improvementCount = self.getImprovementCount()
+        improvement = self.getImprovement()
         randomlyChosenVertices = np.random.choice(self.graphCopy.vs.indices, improvementCount, replace=False)
         for res in randomlyChosenVertices:
             vertex = self.graphCopy.vs.find(int(res))
@@ -479,13 +517,22 @@ class RandomVertex(MethodBase):
         csvFileName = self.simName + "_" + self.serializationTime + ".csv"
         outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
         with open(outputCSVFilePath, 'wb') as outputCSVFile:
-            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'improvementRatio', 'improvedRatio', 'method',
+            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'improvementRatio', 'improvement', 'improvedRatio',
+                          'improvedCount', 'method',
                           'destroyMethod', 'alpha']
             writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
 
             writer.writeheader()
             [writer.writerow({'status': i[0], 'n': i[1], 'LCCRatio': i[2], 'PfPdRatio': i[3],
-                              'improvementRatio': self.improvementRatio, 'improvedRatio': self.improvedRatio,
+                              'improvementRatio': self.improvementRatio, 'improvement': self.getImprovement(),
+                              'improvedRatio': self.improvedRatio,
+                              'improvedCount': self.getImprovementCount(),
                               'method': self.methodName,
                               'destroyMethod': self.destroyMethod, 'alpha': self.alpha}) for i in csvResult]
         outputCSVFile.close()
+
+    def getImprovementCount(self):
+        return floor(self.improvedRatio * len(self.graphCopy.vs))
+
+    def getImprovement(self):
+        return floor(self.improvementRatio * sum(self.graphCopy.vs["c"]))
