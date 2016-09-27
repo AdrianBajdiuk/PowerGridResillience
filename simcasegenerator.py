@@ -4,6 +4,9 @@ import time
 import json
 import logging
 from Helper import configureBasicLogger
+
+dataConfigFileName = "config.json"
+
 def main():
     configureBasicLogger("log")
     parser = optparse.OptionParser()
@@ -76,10 +79,24 @@ def main():
                     configFile.close()
                 for dir in datas:
                     datName = os.path.basename(dir)
-                    writeSingleRunScript(startingScript, options.mem,options.processors,"main",configFileOutput,configFileName,dir, simName+"_"+datName+".sh",allRunScripts)
+                    dataConfigDict ={}
+                    walltime = "00:00:00"
+                    with open(os.path.join(dir,dataConfigFileName)) as dataConfigFile:
+                        dataConfigDict = json.load(dataConfigFile)
+                        dataConfigFile.close()
+                    walltime = dataConfigDict["walltime"] if len(dataConfigDict["walltime"])>0 else walltime
+                    writeSingleRunScript(startingScript, options.mem,options.processors,"main",configFileOutput,configFileName,dir, simName+"_"+datName+".sh",allRunScripts,walltime)
     with open(startAllName,'w') as startAllFile:
+        startAllFile.write("##################file.sh#######\n")
+        startAllFile.write("#!/bin/bash\n")
+        startAllFile.write("#PBS -l walltime=00:00:10\n")
+        startAllFile.write("#PBS -l select=1:ncpus=1:mem=100m\n")
+        startAllFile.write("#PBS -q main\n\n")
+
         for script in allRunScripts:
             startAllFile.write("qsub " + script+"\n")
+
+        startAllFile.write("###############################")
         startAllFile.close()
 
 
