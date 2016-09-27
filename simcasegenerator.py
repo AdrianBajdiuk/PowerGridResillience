@@ -114,7 +114,7 @@ def writeSingleRunScript(startingScript,mem,proc, queueName,outputDir,configFile
         scriptFile.write("#PBS -l select=1:ncpus="+str(proc)+":mem="+str(mem)+"m\n")
         scriptFile.write("#PBS -q "+queueName+"\n\n")
         scriptFile.write("module load python\n\n")
-        scriptFile.write("python "+startingScript+" -c "+configFilePath+" -d "+dataPath+"\n\n")
+        scriptFile.write("python "+startingScript+" -c "+configFilePath+" -i "+dataPath+"\n\n")
         scriptFile.write("###############################")
         scriptFile.close()
     logging.info("created script " + scriptName)
