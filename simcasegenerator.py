@@ -3,6 +3,7 @@ import optparse
 import time
 import json
 import logging
+import re
 from Helper import configureBasicLogger
 
 dataConfigFileName = "config.json"
@@ -85,12 +86,14 @@ def main():
                         dataConfigDict = json.load(dataConfigFile)
                         dataConfigFile.close()
                     walltime = dataConfigDict["walltime"] if len(dataConfigDict["walltime"])>0 else walltime
-                    writeSingleRunScript(startingScript, options.mem,options.processors,"main",configFileOutput,configFileName,dir, simName+"_"+datName+".sh",allRunScripts,walltime)
+                    shortSimName = getShortSimName(m, datName, improvement, improvedRatio)
+                    writeSingleRunScript(startingScript, options.mem,options.processors,"main",configFileOutput,configFileName,dir, shortSimName+".sh",allRunScripts,walltime)
     with open(startAllName,'w') as startAllFile:
         startAllFile.write("##################file.sh#######\n")
         startAllFile.write("#!/bin/bash\n")
 
         for script in allRunScripts:
+            startAllFile.write("cd " + os.path.dirname(script) + "\n")
             startAllFile.write("qsub " + script+"\n")
 
         startAllFile.write("###############################")
@@ -116,6 +119,21 @@ def writeSingleRunScript(startingScript,mem,proc, queueName,outputDir,configFile
         scriptFile.close()
     logging.info("created script " + scriptName)
     registry.append(outputFileName)
+
+def getShortSimName(method,data,imp,impC):
+    result = ""
+    if method is "RandomEdge":
+        result = result+"RE"
+    elif method is "RandomVertex":
+        result = result+"RV"
+    elif method is "ESPEdge":
+        result = result+"EE"
+    elif method is "ESPVertex":
+        result = result+"EV"
+    result = result + str(data)[0]
+    result = result + re.findall(r'\d+',data)[0] if not str(data)[0] is "w" else result
+    result = result  + re.findall(r'\..*',str(imp))[0][1:].replace("0","")+"-"+ re.findall(r'\..*',str(impC))[0][1:].replace("0","")
+    return result
 
 
 if __name__ == "__main__":
