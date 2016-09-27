@@ -89,7 +89,7 @@ def main():
     with open(startAllName,'w') as startAllFile:
         startAllFile.write("##################file.sh#######\n")
         startAllFile.write("#!/bin/bash\n")
-        startAllFile.write("#PBS -l walltime=00:00:10\n")
+        startAllFile.write("#PBS -l walltime=00:10:00\n")
         startAllFile.write("#PBS -l select=1:ncpus=1:mem=100m\n")
         startAllFile.write("#PBS -q main\n\n")
 
