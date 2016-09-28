@@ -124,7 +124,7 @@ def configureProcessLogger(logQueue):
 # change Pin, and Pd to create another instance of case, but do not change topology
 # returns copies
 # randomize case and graph:
-def randomizeGraphAndCase(i, methodName, graphCopy, caseCopy, alpha):
+def randomizeGraphAndCase(i, methodName, graphCopy, caseCopy, alpha,vMaxK):
     logging.log(logging.INFO,
                 "starting %(method)s method %(iter)d case validity check" % {"method": methodName,
                                                                              "iter": i})
@@ -148,7 +148,7 @@ def randomizeGraphAndCase(i, methodName, graphCopy, caseCopy, alpha):
             busV["Pd"] = pd
             bus[constIn["bus"]["Pd"]] = pd
 
-        randomizedSimTask = SimTask(methodName, i, simGraph, simCase)
+        randomizedSimTask = SimTask(methodName, i, simGraph, simCase,vMaxK=vMaxK)
         # checks overflows, after updating power flows
         if randomizedSimTask.isValid():
             return randomizedSimTask
@@ -159,7 +159,7 @@ def randomizeGraphAndCase(i, methodName, graphCopy, caseCopy, alpha):
 
 class MethodBase(multiprocessing.Process):
     def __init__(self, dataName, simName, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod,
-                 vStep=None):
+                 vMaxK=1,vStep=None):
         multiprocessing.Process.__init__(self)
         self.dataName = dataName
         self.simName = simName
@@ -172,6 +172,7 @@ class MethodBase(multiprocessing.Process):
         self.alpha = alpha
         self.destroyMethod = destroyMethod
         self.vStep = vStep
+        self.vMaxK = vMaxK
         self.tasks = multiprocessing.JoinableQueue()
         self.results = multiprocessing.Queue()
         self.csvResult = []
@@ -192,7 +193,7 @@ class MethodBase(multiprocessing.Process):
 
         self.graphCopy, self.caseCopy = self.improveResiliency()
         vStep = self.vStep
-        simTask = SimTask(self.methodName, 0, self.graphCopy.copy(), copyCase(self.caseCopy), v=vStep)
+        simTask = SimTask(self.methodName, 0, self.graphCopy.copy(), copyCase(self.caseCopy),vMaxK=self.vMaxK, v=vStep)
         self.tasks.put(simTask)
         # trigger of cascade, passed as reference to function
 
@@ -201,8 +202,7 @@ class MethodBase(multiprocessing.Process):
                                                                                   "iter": self.N - 1})
         randomizedSimTasks = Parallel(n_jobs=self.processesCount, verbose=50)(
             delayed(randomizeGraphAndCase)(i, self.methodName, self.graphCopy.copy(), copyCase(self.caseCopy),
-                                           self.alpha)
-            for i in range(1, self.N))
+                                           self.alpha,self.vMaxK)for i in range(1, self.N))
 
         logging.log(logging.INFO,
                     "finished %(method)s method generation of %(iter)d probes" % {"method": self.methodName,
@@ -270,7 +270,7 @@ class MethodBase(multiprocessing.Process):
         csvFileName = self.simName + "_" + self.serializationTime + ".csv"
         outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
         with open(outputCSVFilePath, 'wb') as outputCSVFile:
-            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'method', 'destroyMethod', 'alpha']
+            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'method', 'destroyMethod','destroyedItems', 'alpha']
             writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
 
             writer.writeheader()
@@ -295,9 +295,9 @@ class ESPBase(MethodBase):
     def __init__(self,dataName, simName, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha, destroyMethod, H,
                  M,
                  improvedRatio,
-                 improvementRatio, vStep=None):
+                 improvementRatio,vMaxK=1, vStep=None):
         MethodBase.__init__(self,dataName, simName, processesCount, outputDir, methodName, N, graphCopy, caseCopy, alpha,
-                            destroyMethod,
+                            destroyMethod,vMaxK,
                             vStep)
         self.H = H
         self.M = M
@@ -341,12 +341,12 @@ class ESPBase(MethodBase):
 class ESPEdge(ESPBase):
     def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
                  improvedRatio,
-                 improvementRatio,
+                 improvementRatio,vMaxK=1,
                  vStep=None):
         ESPBase.__init__(self,dataName, simName, processesCount, outputDir, 'ESP edge', N, graphCopy, caseCopy, alpha,
                          destroyMethod, H,
                          M,
-                         improvedRatio, improvementRatio, vStep)
+                         improvedRatio, improvementRatio,vMaxK, vStep)
 
     def improveResiliency(self):
         logging.log(logging.INFO,
@@ -394,12 +394,12 @@ class ESPEdge(ESPBase):
 class ESPVertex(ESPBase):
     def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
                  improvedRatio,
-                 improvementRatio,
+                 improvementRatio,vMaxK=1,
                  vStep=None):
         ESPBase.__init__(self,dataName, simName, processesCount, outputDir, 'ESP vertex', N, graphCopy, caseCopy, alpha,
                          destroyMethod, H,
                          M,
-                         improvedRatio, improvementRatio, vStep)
+                         improvedRatio, improvementRatio,vMaxK, vStep)
 
     def improveResiliency(self):
         logging.log(logging.INFO,
@@ -441,10 +441,10 @@ class ESPVertex(ESPBase):
 
 class RandomEdge(MethodBase):
     def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
-                 improvementRatio,
+                 improvementRatio,vMaxK=1,
                  vStep=None):
         MethodBase.__init__(self,dataName, simName, processesCount, outputDir, 'Random edge', N, graphCopy, caseCopy, alpha,
-                            destroyMethod, vStep)
+                            destroyMethod,vMaxK, vStep)
         self.improvedRatio = improvedRatio
         self.improvementRatio = improvementRatio
 
@@ -491,10 +491,10 @@ class RandomEdge(MethodBase):
 
 class RandomVertex(MethodBase):
     def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
-                 improvementRatio,
+                 improvementRatio,vMaxK=1,
                  vStep=None):
         MethodBase.__init__(self,dataName, simName, processesCount, outputDir, 'Random vertex', N, graphCopy, caseCopy, alpha,
-                            destroyMethod, vStep)
+                            destroyMethod,vMaxK, vStep)
         self.improvedRatio = improvedRatio
         self.improvementRatio = improvementRatio
 

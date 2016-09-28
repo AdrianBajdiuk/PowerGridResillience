@@ -11,7 +11,7 @@ import numpy as np
 from GraphCaseUpdates import deleteVertice,deleteEdge
 
 class SimTask:
-    def __init__(self, methodName, iteration, graphCopy,caseCopy, n=None, v=None):
+    def __init__(self, methodName, iteration, graphCopy,caseCopy,vMaxK=1, n=None, v=None):
         self.method = methodName
         # needed for simulation
         self.graph = graphCopy
@@ -25,6 +25,7 @@ class SimTask:
         self.case = caseCopy
         self.n = n
         self.v = v
+        self.vMaxK = vMaxK
         self.cascadeTrigger = None
         self.visualize = not (self.v is None)
         self.visualizations = [[-1,self.graphVisual.copy()]] if self.visualize else []
@@ -53,17 +54,16 @@ class SimTask:
             # self.getResult()
             # destroy the graph until cascade is trigerred
             destroyedCounter = 0
-            self.graph, self.case, self.graphVisual, self.cascadeTrigger = self.destroyGraph(self.graph, self.case,
-                                                                                             self.graphVisual)
-            while True:
+            # self.graph, self.case, self.graphVisual, self.cascadeTrigger = self.destroyGraph(self.graph, self.case,
+            #                                                                                  self.graphVisual)
+            for i in range(0,self.vMaxK):
                 self.graph, self.case, self.graphVisual, self.cascadeTrigger = self.destroyGraph(self.graph, self.case,self.graphVisual)
                 destroyedCounter = destroyedCounter + 1
                 self.updateGraphFlow(self.graph, self.case)
-                malfunctions = self.findMalfunctions(self.graph, self.previousGraph,self.cascadeTrigger)
-                if len(malfunctions)>0:
-                    break
             self.destroyedCounter = destroyedCounter
-            logging.log(logging.INFO, "Overflows found after deletion of %(destroyedCounter)d vertices" % {"destroyedCounter": self.destroyedCounter})
+            malfunctions = self.findMalfunctions(self.graph, self.previousGraph, self.cascadeTrigger)
+            if len(malfunctions)>0:
+                logging.log(logging.INFO, "Overflows found after deletion of %(destroyedCounter)d vertices" % {"destroyedCounter": self.destroyedCounter})
         except SimException as e:
             logging.error(e)
             raise e
