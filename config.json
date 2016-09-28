@@ -6,7 +6,7 @@
   "simProcessorsCount": 1,
   "simTasks": [
     {
-      "methodName": "RandomVertex",
+      "methodName": "base",
       "destroyMethod": "VMaxK",
       "simName": "ESPVertex-i-0_002-ic-0_05",
       "destroyMethod": "VMaxK",

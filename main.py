@@ -60,6 +60,12 @@ def main():
                                                                                                            "simOutput"])
     if "simProcessorsCount" in configDict:
         simProcessorsCount  = configDict["simProcessorsCount"]
+    dataName = os.path.basename(options.input)
+    dataConfigFileName = os.path.join(options.input,"config.json")
+    dataConfigDict = {}
+    with open(dataConfigFileName) as configFile:
+        dataConfigDict = json.load(configFile)
+    vMaxK = dataConfigDict["vMaxK"]
     for task in configDict["simTasks"]:
         simTask = None
         destroyMethod = task["destroyMethod"]
@@ -68,25 +74,25 @@ def main():
         if task["methodName"] == "RandomEdge":
             outputDir = os.path.join(simOutputDir, simName)
             simTask = RandomEdge(dataName,simName,simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod,
-                                 task["improvementCount"], task["improvement"], simVStep)
+                                 task["improvementCount"], task["improvement"],vMaxK=vMaxK, vStep=simVStep)
         elif task["methodName"] == "RandomVertex":
             outputDir = os.path.join(simOutputDir, simName)
             simTask = RandomVertex(dataName,simName,simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod,
-                                   task["improvementCount"], task["improvement"], simVStep)
+                                   task["improvementCount"], task["improvement"],vMaxK=vMaxK, vStep=simVStep)
         elif task["methodName"] == "ESPEdge":
             outputDir = os.path.join(simOutputDir, simName)
             simTask = ESPEdge(dataName,simName,simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, task["H"],
                               task["M"],
-                              task["improvementCount"], task["improvement"], simVStep)
+                              task["improvementCount"], task["improvement"], vMaxK=vMaxK, vStep=simVStep)
         elif task["methodName"] == "ESPVertex":
             outputDir = os.path.join(simOutputDir, simName)
             simTask = ESPVertex(dataName,simName,simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, task["H"],
                                 task["M"],
-                                task["improvementCount"], task["improvement"], simVStep)
+                                task["improvementCount"], task["improvement"], vMaxK=vMaxK, vStep=simVStep)
         elif task["methodName"] == "base":
             simName = "base"
             outputDir = os.path.join(simOutputDir, simName)
-            simTask = MethodBase(dataName,simName,simProcessorsCount,outputDir,simName, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, simVStep)
+            simTask = MethodBase(dataName,simName,simProcessorsCount,outputDir,simName, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, vMaxK=vMaxK, vStep=simVStep)
 
         if simTask is not None:
             simTasks.append((simName, simTask))

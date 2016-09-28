@@ -93,9 +93,9 @@ def increaseEdgeC(edge,graph,increaseValue):
 def increaseVertexC(vertex,graph,increaseValue):
     graph.vs.find(int(vertex))["c"] += increaseValue
 
-def configureBasicLogger(logDir):
+def configureBasicLogger(logDir,logName=""):
     # start logger:
-    fileLogPath = "sim_" + strftime("%H-%M", gmtime()) + ".log"
+    fileLogPath = "sim_" + strftime("%H-%M", gmtime()) + ".log" if len(logName) == 0 else logName
     fileLogPath = os.path.join(logDir, fileLogPath)
     if not os.path.exists(logDir):
         os.makedirs(logDir)

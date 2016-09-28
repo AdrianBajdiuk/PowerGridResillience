@@ -3,7 +3,7 @@ import multiprocessing
 from math import log, floor
 import numpy as np
 from joblib import Parallel, delayed
-from Helper import copyCase, createRandomWalk, configureFileLogger
+from Helper import copyCase, createRandomWalk, configureBasicLogger
 from Simulations import SimTask
 import copy_reg
 import types
@@ -183,7 +183,7 @@ class MethodBase(multiprocessing.Process):
 
 
     def run(self):
-        configureFileLogger(self.outputDir, "sim-" + self.dataName + "-"+self.serializationTime + ".log")
+        configureBasicLogger(self.outputDir, "sim-" + self.dataName + "-"+self.serializationTime + ".log")
         # logging queue
         logQueue = multiprocessing.Queue(-1)
         simLogPath = os.path.join(self.outputDir, self.simName + "_" + strftime("%H-%M", gmtime()) + ".log")
