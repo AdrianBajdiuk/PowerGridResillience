@@ -99,7 +99,6 @@ def main():
         logging.log(logging.INFO, "finished %s task with code %d" % (simTask[0],simTask[1].exitcode))
         simTask[1].terminate()
 
-
 if __name__ == "__main__":
     main()
     # remove libs folder from scanning

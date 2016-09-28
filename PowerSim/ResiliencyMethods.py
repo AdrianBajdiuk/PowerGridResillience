@@ -3,7 +3,7 @@ import multiprocessing
 from math import log, floor
 import numpy as np
 from joblib import Parallel, delayed
-from Helper import copyCase, createRandomWalk, configureBasicLogger
+from Helper import copyCase, createRandomWalk, configureFileLogger
 from Simulations import SimTask
 import copy_reg
 import types
@@ -180,10 +180,9 @@ class MethodBase(multiprocessing.Process):
         self.simProcessors = []
         self.processesCount = processesCount
 
+
     def run(self):
-
-        configureBasicLogger(self.outputDir)
-
+        configureFileLogger(self.outputDir, "sim-" + self.dataName + "-"+self.serializationTime + ".log")
         # logging queue
         logQueue = multiprocessing.Queue(-1)
         simLogPath = os.path.join(self.outputDir, self.simName + "_" + strftime("%H-%M", gmtime()) + ".log")
@@ -251,9 +250,9 @@ class MethodBase(multiprocessing.Process):
             os.makedirs(self.outputDir)
         for i in range(self.results.qsize()):
             res = self.results.get()
-            if len(res[1][3]) > 0:
-                visualizations += [res[1][3]]
-            csvResult += [[res[0], res[1][0], res[1][1], res[1][2]]]
+            if len(res[1][4]) > 0:
+                visualizations += [res[1][4]]
+            csvResult += [[res[0], res[1][0], res[1][1], res[1][2], res[1][3]]]
 
     # serialize results
     def serializeVisualizations(self, visualizations):
@@ -276,7 +275,7 @@ class MethodBase(multiprocessing.Process):
 
             writer.writeheader()
             [writer.writerow({'status': i[0], 'n': i[1], 'LCCRatio': i[2], 'PfPdRatio': i[3], 'method': self.methodName,
-                              'destroyMethod': self.destroyMethod, 'alpha': self.alpha}) for i in csvResult]
+                              'destroyMethod': self.destroyMethod,'destroyedItems':i[4], 'alpha': self.alpha}) for i in csvResult]
         outputCSVFile.close()
 
     # checks if new instance is valid->no overflows!
@@ -320,7 +319,7 @@ class ESPBase(MethodBase):
         with open(outputCSVFilePath, 'wb') as outputCSVFile:
             fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'H', 'M', 'improvementRatio', 'improvement',
                           'improvedRatio', 'improvedCount', 'method',
-                          'destroyMethod', 'alpha']
+                          'destroyMethod','destroyedItems', 'alpha']
             writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
 
             writer.writeheader()
@@ -329,7 +328,7 @@ class ESPBase(MethodBase):
                               'improvedRatio': self.improvedRatio,
                               'improvedCount': self.getImprovementCount(),
                               'method': self.methodName,
-                              'destroyMethod': self.destroyMethod, 'alpha': self.alpha}) for i in csvResult]
+                              'destroyMethod': self.destroyMethod,'destroyedItems':i[4], 'alpha': self.alpha}) for i in csvResult]
         outputCSVFile.close()
 
     def getImprovementCount(self):
@@ -477,7 +476,7 @@ class RandomEdge(MethodBase):
         with open(outputCSVFilePath, 'wb') as outputCSVFile:
             fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'improvementRatio', 'improvement', 'improvedRatio',
                           'improvedCount', 'method',
-                          'destroyMethod', 'alpha']
+                          'destroyMethod','destroyedItems', 'alpha']
             writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
 
             writer.writeheader()
@@ -486,7 +485,7 @@ class RandomEdge(MethodBase):
                               'improvedRatio': self.improvedRatio,
                               'improvedCount': self.getImprovementCount(),
                               'method': self.methodName,
-                              'destroyMethod': self.destroyMethod, 'alpha': self.alpha}) for i in csvResult]
+                              'destroyMethod': self.destroyMethod,'destroyedItems':i[4], 'alpha': self.alpha}) for i in csvResult]
         outputCSVFile.close()
 
 
@@ -521,7 +520,7 @@ class RandomVertex(MethodBase):
         with open(outputCSVFilePath, 'wb') as outputCSVFile:
             fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'improvementRatio', 'improvement', 'improvedRatio',
                           'improvedCount', 'method',
-                          'destroyMethod', 'alpha']
+                          'destroyMethod','destroyedItems', 'alpha']
             writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
 
             writer.writeheader()
@@ -530,7 +529,7 @@ class RandomVertex(MethodBase):
                               'improvedRatio': self.improvedRatio,
                               'improvedCount': self.getImprovementCount(),
                               'method': self.methodName,
-                              'destroyMethod': self.destroyMethod, 'alpha': self.alpha}) for i in csvResult]
+                              'destroyMethod': self.destroyMethod,'destroyedItems':i[4], 'alpha': self.alpha}) for i in csvResult]
         outputCSVFile.close()
 
     def getImprovementCount(self):

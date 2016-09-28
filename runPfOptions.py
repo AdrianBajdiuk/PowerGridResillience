@@ -92,9 +92,9 @@ OUTPUT_OPTIONS = [
 
     ('out_area_sum', False, 'print area summaries'),
 
-    ('out_bus', True, 'print bus detail'),
+    ('out_bus', False, 'print bus detail'),
 
-    ('out_branch', True, 'print branch detail'),
+    ('out_branch', False, 'print branch detail'),
 
     ('out_gen', False, '''print generator detail
 (OUT_BUS also includes gen info)'''),

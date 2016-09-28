@@ -31,7 +31,7 @@ class SimTask:
     #can be checked only once at beginning
     def isValid(self):
         logging.log(logging.INFO,
-                    "starting %(method)s method %(iter)d case validity check" % {"method": self.method,
+                    "starting %(method)s method %(iter)d probe validity check" % {"method": self.method,
                                                                                  "iter": self.iteration})
         self.updateGraphFlow(self.referenceGraph,self.case)
         # cascade start can be whatever
@@ -39,21 +39,31 @@ class SimTask:
         result = len(malfunctions)>0
         if result:
             logging.log(logging.INFO,
-                    " %(method)s method %(iter)d case validity check failed, generate again" % {"method": self.method,
+                    " %(method)s method %(iter)d probe case validity check failed, generate again" % {"method": self.method,
                                                                                  "iter": self.iteration})
         return not result
 
     def runSimulation(self):
 
         logging.log(logging.INFO,
-                    "starting %(method)s method simulation in %(iter)d iteration" % {"method": self.method, "iter": self.iteration})
+                    "starting %(method)s method simulation in %(iter)d probe" % {"method": self.method, "iter": self.iteration})
         try:
             self.updateGraphFlow(self.graphVisual,self.case)
             self.updateGraphFlow(self.graph, self.case)
             # self.getResult()
-            # destroy the graph
+            # destroy the graph until cascade is trigerred
+            destroyedCounter = 0
             self.graph, self.case, self.graphVisual, self.cascadeTrigger = self.destroyGraph(self.graph, self.case,
                                                                                              self.graphVisual)
+            while True:
+                self.graph, self.case, self.graphVisual, self.cascadeTrigger = self.destroyGraph(self.graph, self.case,self.graphVisual)
+                destroyedCounter = destroyedCounter + 1
+                self.updateGraphFlow(self.graph, self.case)
+                malfunctions = self.findMalfunctions(self.graph, self.previousGraph,self.cascadeTrigger)
+                if len(malfunctions)>0:
+                    break
+            self.destroyedCounter = destroyedCounter
+            logging.log(logging.INFO, "Overflows found after deletion of %(destroyedCounter)d vertices" % {"destroyedCounter": self.destroyedCounter})
         except SimException as e:
             logging.error(e)
             raise e
@@ -62,7 +72,7 @@ class SimTask:
             logging.log(logging.INFO, "for specified  %(count)d iterations" % {"count": self.n})
             for iter in range(0,self.n):
                 self.updateGraphFlow(self.graph,self.case)
-                malfunctions = self.findMalfunctions(self.graph,self.previousGraph)
+                malfunctions = self.findMalfunctions(self.graph,self.previousGraph, self.cascadeTrigger)
                 if len(malfunctions) > 0:
                     self.simulate(iter, malfunctions)
                 else:
@@ -82,7 +92,7 @@ class SimTask:
                             self.visualizations += [[counter, self.graphVisual.copy()]]
                         counter += 1
                     else:
-                        logging.log(logging.INFO, "found  0 overflows for %(method)s method in %(iter)d iteration, try %(try)d."
+                        logging.log(logging.INFO, "found  0 overflows for %(method)s method in %(iter)d probe, iteration %(try)d."
                                               " Terminating" % {"method": self.method, "iter": self.iteration,
                                                                 "try": counter})
                         return
@@ -92,7 +102,7 @@ class SimTask:
 
     def simulate(self, counter, malfunctions):
         logging.log(logging.INFO, "found  %(over)d overflows for %(method)s method"
-                                  " in %(iter)d iteration %(try)d try"
+                                  " in %(iter)d probe %(try)d iteration"
                     % {"over": len(malfunctions), "method": self.method, "iter": self.iteration,
                        "try": counter})
         # calculate Probablity based on shortest path lengths
@@ -125,7 +135,7 @@ class SimTask:
             # save previous graph for paths:
             self.previousGraph = self.graph.copy()
             logging.log(logging.INFO, "removing  %(name)s of type %(type)s from graph in  %(method)s method"
-                                      " %(iter)d iteration %(try)d try"
+                                      " %(iter)d probe %(try)d iteration"
                         % {"name": selected["name"], "type": selected["type"], "method": self.method,
                            "iter": self.iteration, "try": counter})
 
@@ -223,7 +233,7 @@ class SimTask:
             len(self.referenceGraph.components(mode='WEAK').giant().vs))
         actualFlow = sum([self.actualPflowForVertex(v) for v in self.graph.vs])
         actualFlowPdRatio = actualFlow / sum(self.referenceGraph.vs["Pd"])
-        return self.iteration,largestConnectedComponentsRatio,actualFlowPdRatio, self.visualizations
+        return self.iteration,largestConnectedComponentsRatio,actualFlowPdRatio,self.destroyedCounter, self.visualizations
 
     # destroy method default VmaxK
     def destroyGraph(self, graph, case , graphVisual,destroyMethod=None):
