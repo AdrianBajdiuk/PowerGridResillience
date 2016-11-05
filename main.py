@@ -18,7 +18,7 @@ sys.path.append(libsPath)
 
 import createGraph as cg
 from Helper import copyCase
-from PowerSim.ResiliencyMethods import MethodBase, ESPEdge, ESPVertex, RandomEdge, RandomVertex
+from PowerSim.ResiliencyMethods import *
 from pypower.api import runpf
 from runPfOptions import ppoption
 import logging
@@ -89,6 +89,42 @@ def main():
             simTask = ESPVertex(dataName,simName,simProcessorsCount,outputDir, simN, graph.copy(), copyCase(case), simAlpha, destroyMethod, task["H"],
                                 task["M"],
                                 task["improvementCount"], task["improvement"], vMaxK=vMaxK, vStep=simVStep)
+        elif task["methodName"] == "ClosenessVertex":
+            outputDir = os.path.join(simOutputDir, simName)
+            simTask = ClosenessVertex(dataName, simName, simProcessorsCount, outputDir, simN, graph.copy(), copyCase(case),
+                                   simAlpha, destroyMethod,
+                                   task["improvementCount"], task["improvement"], vMaxK=vMaxK, vStep=simVStep)
+        elif task["methodName"] == "ClosenessEdge":
+            outputDir = os.path.join(simOutputDir, simName)
+            simTask = ClosenessEdge(dataName, simName, simProcessorsCount, outputDir, simN, graph.copy(),
+                                      copyCase(case),
+                                      simAlpha, destroyMethod,
+                                      task["improvementCount"], task["improvement"], vMaxK=vMaxK, vStep=simVStep)
+        elif task["methodName"] == "SlackPercentageVertex":
+            outputDir = os.path.join(simOutputDir, simName)
+            simTask = SlackPercentageVertex(dataName, simName, simProcessorsCount, outputDir, simN, graph.copy(),
+                                    copyCase(case),
+                                    simAlpha, destroyMethod,
+                                    task["improvementCount"], task["improvement"], vMaxK=vMaxK, vStep=simVStep)
+        elif task["methodName"] == "SlackPercentageEdge":
+            outputDir = os.path.join(simOutputDir, simName)
+            simTask = SlackPercentageEdge(dataName, simName, simProcessorsCount, outputDir, simN, graph.copy(),
+                                            copyCase(case),
+                                            simAlpha, destroyMethod,
+                                            task["improvementCount"], task["improvement"], vMaxK=vMaxK, vStep=simVStep)
+        elif task["methodName"] == "GreedyVertex":
+            outputDir = os.path.join(simOutputDir, simName)
+            simTask = GreedyVertex(dataName, simName, simProcessorsCount, outputDir, simN, graph.copy(),
+                                          copyCase(case),
+                                          simAlpha, destroyMethod,
+                                          task["improvementCount"], task["improvement"],task["greedyN"], vMaxK=vMaxK, vStep=simVStep)
+        elif task["methodName"] == "GreedyEdge":
+            outputDir = os.path.join(simOutputDir, simName)
+            simTask = GreedyEdge(dataName, simName, simProcessorsCount, outputDir, simN, graph.copy(),
+                                   copyCase(case),
+                                   simAlpha, destroyMethod,
+                                   task["improvementCount"], task["improvement"], task["greedyN"], vMaxK=vMaxK,
+                                   vStep=simVStep)
         elif task["methodName"] == "base":
             simName = "base"
             outputDir = os.path.join(simOutputDir, simName)

@@ -543,7 +543,7 @@ class ClosenessVertex(MethodBase):
         improvement = self.getImprovement()
         vs  = self.graphCopy.vs
         num_cores = self.processesCount
-        harmonicClosenes = Parallel(n_jobs=num_cores)(
+        harmonicClosenes = Parallel(n_jobs=num_cores,verbose=50)(
             delayed(harmonicClosenessForV)(i.index, self.graphCopy) for i in vs)
         # print espResult
         vMaxKIndex = self.graphCopy.vs.select(_degree=self.graphCopy.maxdegree())[0].index
@@ -597,7 +597,7 @@ class ClosenessEdge(MethodBase):
         improvement = self.getImprovement()
         es = self.graphCopy.es
         num_cores = self.processesCount
-        shortestPathParticipations = Parallel(n_jobs=num_cores)(
+        shortestPathParticipations = Parallel(n_jobs=num_cores,verbose=50)(
             delayed(shortestPathsParticipationforE)(i.index, self.graphCopy) for i in es)
         # print espResult
         ##TODO
@@ -728,6 +728,153 @@ class SlackPercentageEdge(MethodBase):
             results[slack] = float("inf")
         chosen = (results).argsort()[:improvementCount]
         for res in chosen:
+            edge = self.graphCopy.es.find(int(res))
+            if edge["c"] != 0.0:
+                edge["c"] += improvement
+        logging.log(logging.INFO,
+                    "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
+        return self.graphCopy, self.caseCopy
+
+    def serializeCSV(self, csvResult):
+        if not os.path.exists(self.outputDir):
+            os.makedirs(self.outputDir)
+        csvFileName = self.simName + "_" + self.serializationTime + ".csv"
+        outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
+        with open(outputCSVFilePath, 'wb') as outputCSVFile:
+            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'improvementRatio', 'improvement', 'improvedRatio',
+                          'improvedCount', 'method',
+                          'destroyMethod','destroyedItems', 'alpha']
+            writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
+
+            writer.writeheader()
+            [writer.writerow({'status': i[0], 'n': i[1], 'LCCRatio': i[2], 'PfPdRatio': i[3],
+                              'improvementRatio': self.improvementRatio, 'improvement': self.getImprovement(),
+                              'improvedRatio': self.improvedRatio,
+                              'improvedCount': self.getImprovementCount(),
+                              'method': self.methodName,
+                              'destroyMethod': self.destroyMethod,'destroyedItems':i[4], 'alpha': self.alpha}) for i in csvResult]
+        outputCSVFile.close()
+
+
+def greedySim(simTask,element,vMaxKindex=None):
+    result = 0.0
+    if element["deletable"] and not element.index == vMaxKindex:
+        simTask.runSimulation()
+        simResult = simTask.getResult()
+        lcg = simResult[1]
+        pf = simResult[2]
+        result = (lcg + pf) / 2
+    return element.index,result
+
+class GreedyVertex(MethodBase):
+    def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
+                 improvementRatio,greedyN,vMaxK=1,
+                 vStep=None):
+        MethodBase.__init__(self,dataName, simName, processesCount, outputDir, 'Greedy vertex', N, graphCopy, caseCopy, alpha,
+                            destroyMethod,vMaxK, vStep)
+        self.improvedRatio = improvedRatio
+        self.improvementRatio = improvementRatio
+        self.greedyN = greedyN
+
+    def improveResiliency(self):
+        logging.log(logging.INFO,
+                    "starting improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
+        improvementCount = int(self.getImprovementCount())
+        improvement = self.getImprovement()
+        vs = self.graphCopy.vs
+        vMaxKIndex = self.graphCopy.vs.select(_degree=self.graphCopy.maxdegree())[0].index
+        results = []
+        for i in range(0,improvementCount):
+            greedySimTasks=[]
+            for j, v in enumerate(vs):
+                for k in range(0, self.greedyN):
+                    localGraph = self.graphCopy.copy()
+                    for g, res in enumerate(results):
+                        resVs = localGraph.vs.find(res)
+                        resVs["c"] = resVs["c"]  + improvement
+                    localVs = localGraph.vs.find(v.index)
+                    localVs["c"] = localVs["c"] + improvement
+                    simTask = SimTask(self.methodName, 0, localGraph, copyCase(self.caseCopy),vMaxK=self.vMaxK)
+                    greedySimTasks.append([simTask,v,vMaxKIndex])
+            greedySimTaksResult = Parallel(n_jobs=self.processesCount,verbose=50)(
+            delayed(greedySim)(greedyTask[0], greedyTask[1],greedyTask[2]) for greedyTask in greedySimTasks)
+            npGSTR = np.array(greedySimTaksResult)
+            means = np.zeros(len(vs))
+            for j,v in enumerate(vs.indices):
+                cut = npGSTR[npGSTR[:,0] == v][:,1]
+                means[v] = np.average(cut)
+            results.append(int(means.argsort()[-1]))
+
+        for res in results:
+            vertex = self.graphCopy.vs.find(int(res))
+            if vertex["c"] != 0.0:
+                vertex["c"] += improvement
+        logging.log(logging.INFO,
+                    "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
+        return self.graphCopy, self.caseCopy
+
+    def serializeCSV(self, csvResult):
+        if not os.path.exists(self.outputDir):
+            os.makedirs(self.outputDir)
+        csvFileName = self.simName + "_" + self.serializationTime + ".csv"
+        outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
+        with open(outputCSVFilePath, 'wb') as outputCSVFile:
+            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'improvementRatio', 'improvement', 'improvedRatio',
+                          'improvedCount', 'method',
+                          'destroyMethod','destroyedItems', 'alpha']
+            writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
+
+            writer.writeheader()
+            [writer.writerow({'status': i[0], 'n': i[1], 'LCCRatio': i[2], 'PfPdRatio': i[3],
+                              'improvementRatio': self.improvementRatio, 'improvement': self.getImprovement(),
+                              'improvedRatio': self.improvedRatio,
+                              'improvedCount': self.getImprovementCount(),
+                              'method': self.methodName,
+                              'destroyMethod': self.destroyMethod,'destroyedItems':i[4], 'alpha': self.alpha}) for i in csvResult]
+        outputCSVFile.close()
+
+class GreedyEdge(MethodBase):
+    def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
+                 improvementRatio,greedyN,vMaxK=1,
+                 vStep=None):
+        MethodBase.__init__(self,dataName, simName, processesCount, outputDir, 'Greedy edge', N, graphCopy, caseCopy, alpha,
+                            destroyMethod,vMaxK, vStep)
+        self.improvedRatio = improvedRatio
+        self.improvementRatio = improvementRatio
+        self.greedyN = greedyN
+
+    def improveResiliency(self):
+        logging.log(logging.INFO,
+                    "starting improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
+        improvementCount = int(self.getImprovementCount())
+        improvement = self.getImprovement()
+        slacks = self.graphCopy.es(deletable=False).indices
+        simTask = SimTask(self.methodName, 0, self.graphCopy.copy(), copyCase(self.caseCopy),vMaxK=self.vMaxK)
+        simTask.updateGraphFlow(simTask.graph,simTask.case)
+        es = simTask.graph.es
+        results = []
+        for i in range(0, improvementCount):
+            greedySimTasks = []
+            for j, e in enumerate(es):
+                for k in range(0, self.greedyN):
+                    localGraph = self.graphCopy.copy()
+                    for g, res in enumerate(results):
+                        resEs = localGraph.es.find(res)
+                        resEs["c"] = resEs["c"] + improvement
+                    localEs = localGraph.es.find(e.index)
+                    localEs["c"] = localEs["c"] + improvement
+                    simTask = SimTask(self.methodName, 0, localGraph, copyCase(self.caseCopy), vMaxK=self.vMaxK)
+                    greedySimTasks.append([simTask, e])
+            greedySimTaksResult = Parallel(n_jobs=self.processesCount, verbose=50)(
+                delayed(greedySim)(greedyTask[0], greedyTask[1]) for greedyTask in greedySimTasks)
+            npGSTR = np.array(greedySimTaksResult)
+            means = np.zeros(len(es))
+            for j, e in enumerate(es.indices):
+                cut = npGSTR[npGSTR[:, 0] == e][:, 1]
+                means[e] = np.average(cut)
+            results.append(int(means.argsort()[-1]))
+
+        for res in results:
             edge = self.graphCopy.es.find(int(res))
             if edge["c"] != 0.0:
                 edge["c"] += improvement

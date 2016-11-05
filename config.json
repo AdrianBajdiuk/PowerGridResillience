@@ -6,12 +6,13 @@
   "simProcessorsCount": 1,
   "simTasks": [
     {
-      "methodName": "base",
+      "methodName": "GreedyEdge",
       "destroyMethod": "VMaxK",
-      "simName": "ESPVertex-i-0_002-ic-0_05",
+      "simName": "CVertex-i-0_002-ic-0_05",
       "destroyMethod": "VMaxK",
       "improvement": 0.002,
-      "improvementCount": 0.05
+      "improvementCount": 0.05,
+      "greedyN":2
     }
   ]
 }

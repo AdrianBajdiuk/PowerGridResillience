@@ -87,6 +87,29 @@ def random_walk_iter(g, start=None):
 
 def createRandomWalk(g, start, H):
     return list(islice(random_walk_iter(g, start), H))
+def harmonicClosenessForV(vIndex,graph):
+    vs = graph.vs.indices
+    result = 0.0
+    for index,vertice in enumerate(vs):
+        if  vIndex!=vertice:
+            shortestPathLength = graph.shortest_paths_dijkstra([vIndex],[vertice], mode='ALL')[0][0]
+            harmonicShortestPathLength = float(1.0/shortestPathLength)
+            result = result + harmonicShortestPathLength
+    return result
+def shortestPathsParticipationforE(eIndex,graph):
+    vs = graph.vs.indices
+    result = 0.0
+    for outerIndex,fromVertice in enumerate(vs):
+        for innerIndex in range(outerIndex,len(vs)):
+            toVertice = vs[innerIndex]
+            shortestPaths = graph.get_shortest_paths(fromVertice,toVertice,mode='ALL',output='epath')
+            occurencesInSinglepair = 0
+            for i, path in enumerate(shortestPaths):
+                if eIndex in path:
+                    occurencesInSinglepair = occurencesInSinglepair + 1
+            partInSinglepair = occurencesInSinglepair / float(len(shortestPaths))
+            result = result + partInSinglepair
+    return result;
 
 def increaseEdgeC(edge,graph,increaseValue):
     graph.es.find(int(edge))["c"] += increaseValue
