@@ -1,9 +1,9 @@
 import logging
 import multiprocessing
-from math import log, floor
+from math import log, floor,fabs
 import numpy as np
 from joblib import Parallel, delayed
-from Helper import copyCase, createRandomWalk, configureBasicLogger
+from Helper import copyCase, createRandomWalk, configureBasicLogger,harmonicClosenessForV,shortestPathsParticipationforE
 from Simulations import SimTask
 import copy_reg
 import types
@@ -14,6 +14,7 @@ from const import constIn
 import random
 import quehandler
 from time import strftime, gmtime
+
 
 
 # This is the listener process top-level loop: wait for logging events
@@ -289,6 +290,11 @@ class MethodBase(multiprocessing.Process):
         ##for base method return original graph
         return self.graphCopy, self.caseCopy
 
+    def getImprovementCount(self):
+        return floor(self.improvedRatio * (len(self.graphCopy.es.indices) + len(self.graphCopy.vs)))
+
+    def getImprovement(self):
+        return floor(self.improvementRatio * (sum(self.graphCopy.es["c"]) + sum(self.graphCopy.vs["c"])))
 
 # class base for ESP from random_walkers
 class ESPBase(MethodBase):
@@ -331,13 +337,6 @@ class ESPBase(MethodBase):
                               'destroyMethod': self.destroyMethod,'destroyedItems':i[4], 'alpha': self.alpha}) for i in csvResult]
         outputCSVFile.close()
 
-    def getImprovementCount(self):
-        return 0
-
-    def getImprovement(self):
-        return 0
-
-
 class ESPEdge(ESPBase):
     def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
                  improvedRatio,
@@ -369,7 +368,9 @@ class ESPEdge(ESPBase):
         # selected for improvement edge indices
         improvementCount = self.getImprovementCount()
         improvement = self.getImprovement()
-
+        slacks = self.graphCopy.es(deletable=False).indices
+        for index, slack in enumerate(slacks):
+            results[slack] = 0.0
         selectedResults = (-results).argsort()[:improvementCount]
         logging.log(logging.INFO, "selected results: " + str(selectedResults))
 
@@ -383,13 +384,6 @@ class ESPEdge(ESPBase):
         logging.log(logging.INFO,
                     "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
         return self.graphCopy, self.caseCopy
-
-    def getImprovementCount(self):
-        return floor(self.improvedRatio * len(self.graphCopy.es.indices))
-
-    def getImprovement(self):
-        return floor(self.improvementRatio * sum(self.graphCopy.es["c"]))
-
 
 class ESPVertex(ESPBase):
     def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, H, M,
@@ -422,6 +416,11 @@ class ESPVertex(ESPBase):
         # selected for improvement edge indices
         improvementCount = floor(self.improvedRatio * len(vs))
         improvement = floor(self.improvementRatio * sum(self.graphCopy.vs["c"]))
+        slacks = self.graphCopy.vs(deletable=False).indices
+        vMaxKIndex = self.graphCopy.vs.select(_degree=self.graphCopy.maxdegree())[0].index
+        results[vMaxKIndex] = 0.0
+        for index,slack in enumerate(slacks):
+            results[slack] = 0.0
         selectedResults = (-results).argsort()[:improvementCount]
         logging.log(logging.INFO, "selected results: " + str(selectedResults))
         for res in selectedResults:
@@ -431,13 +430,6 @@ class ESPVertex(ESPBase):
         logging.log(logging.INFO,
                     "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
         return self.graphCopy, self.caseCopy
-
-    def getImprovementCount(self):
-        return floor(self.improvedRatio * len(self.graphCopy.vs))
-
-    def getImprovement(self):
-        return floor(self.improvementRatio * sum(self.graphCopy.vs["c"]))
-
 
 class RandomEdge(MethodBase):
     def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
@@ -462,11 +454,7 @@ class RandomEdge(MethodBase):
                     "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
         return self.graphCopy, self.caseCopy
 
-    def getImprovementCount(self):
-        return floor(self.improvedRatio * len(self.graphCopy.es.indices))
 
-    def getImprovement(self):
-        return floor(self.improvementRatio * sum(self.graphCopy.es["c"]))
 
     def serializeCSV(self, csvResult):
         if not os.path.exists(self.outputDir):
@@ -488,7 +476,6 @@ class RandomEdge(MethodBase):
                               'destroyMethod': self.destroyMethod,'destroyedItems':i[4], 'alpha': self.alpha}) for i in csvResult]
         outputCSVFile.close()
 
-
 class RandomVertex(MethodBase):
     def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
                  improvementRatio,vMaxK=1,
@@ -503,7 +490,14 @@ class RandomVertex(MethodBase):
                     "starting improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
         improvementCount = self.getImprovementCount()
         improvement = self.getImprovement()
-        randomlyChosenVertices = np.random.choice(self.graphCopy.vs.indices, improvementCount, replace=False)
+        slacks = self.graphCopy.vs(deletable=False).indices
+        randomIndices = self.graphCopy.vs.indices
+        vMaxKIndex = self.graphCopy.vs.select(_degree=self.graphCopy.maxdegree())[0].index
+        for index ,slack in enumerate(slacks):
+            randomIndices.remove(slack)
+        if vMaxKIndex in randomIndices:
+            randomIndices.remove(vMaxKIndex)
+        randomlyChosenVertices = np.random.choice(randomIndices, improvementCount, replace=False)
         for res in randomlyChosenVertices:
             vertex = self.graphCopy.vs.find(int(res))
             if vertex["c"] != 0.0:
@@ -532,8 +526,231 @@ class RandomVertex(MethodBase):
                               'destroyMethod': self.destroyMethod,'destroyedItems':i[4], 'alpha': self.alpha}) for i in csvResult]
         outputCSVFile.close()
 
-    def getImprovementCount(self):
-        return floor(self.improvedRatio * len(self.graphCopy.vs))
+class ClosenessVertex(MethodBase):
+    def __init__(self, dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod,
+                 improvedRatio,
+                 improvementRatio, vMaxK=1,
+                 vStep=None):
+        MethodBase.__init__(self, dataName, simName, processesCount, outputDir, 'Closeness vertex', N, graphCopy, caseCopy, alpha,
+                    destroyMethod, vMaxK, vStep)
+        self.improvedRatio = improvedRatio
+        self.improvementRatio = improvementRatio
 
-    def getImprovement(self):
-        return floor(self.improvementRatio * sum(self.graphCopy.vs["c"]))
+    def improveResiliency(self):
+        logging.log(logging.INFO,
+                    "starting improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
+        improvementCount = self.getImprovementCount()
+        improvement = self.getImprovement()
+        vs  = self.graphCopy.vs
+        num_cores = self.processesCount
+        harmonicClosenes = Parallel(n_jobs=num_cores)(
+            delayed(harmonicClosenessForV)(i.index, self.graphCopy) for i in vs)
+        # print espResult
+        vMaxKIndex = self.graphCopy.vs.select(_degree=self.graphCopy.maxdegree())[0].index
+        harmonicClosenes[vMaxKIndex] = 0.0
+        slacks = self.graphCopy.vs(deletable=False).indices
+        for index, slack in enumerate(slacks):
+            harmonicClosenes[int(slack)] = 0.0
+        chosen = (-np.array(harmonicClosenes)).argsort()[:improvementCount]
+        for res in chosen:
+            vertex = self.graphCopy.vs.find(int(res))
+            if vertex["c"] != 0.0:
+                vertex["c"] += improvement
+        logging.log(logging.INFO,
+                    "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
+        return self.graphCopy, self.caseCopy
+
+    def serializeCSV(self, csvResult):
+        if not os.path.exists(self.outputDir):
+            os.makedirs(self.outputDir)
+        csvFileName = self.simName + "_" + self.serializationTime + ".csv"
+        outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
+        with open(outputCSVFilePath, 'wb') as outputCSVFile:
+            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'improvementRatio', 'improvement', 'improvedRatio',
+                          'improvedCount', 'method',
+                          'destroyMethod', 'destroyedItems', 'alpha']
+            writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
+
+            writer.writeheader()
+            [writer.writerow({'status': i[0], 'n': i[1], 'LCCRatio': i[2], 'PfPdRatio': i[3],
+                              'improvementRatio': self.improvementRatio, 'improvement': self.getImprovement(),
+                              'improvedRatio': self.improvedRatio,
+                              'improvedCount': self.getImprovementCount(),
+                              'method': self.methodName,
+                              'destroyMethod': self.destroyMethod, 'destroyedItems': i[4], 'alpha': self.alpha}) for i
+             in csvResult]
+        outputCSVFile.close()
+
+class ClosenessEdge(MethodBase):
+    def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
+                 improvementRatio,vMaxK=1,
+                 vStep=None):
+        MethodBase.__init__(self,dataName, simName, processesCount, outputDir, 'Closeness edge', N, graphCopy, caseCopy, alpha,
+                            destroyMethod,vMaxK, vStep)
+        self.improvedRatio = improvedRatio
+        self.improvementRatio = improvementRatio
+
+    def improveResiliency(self):
+        logging.log(logging.INFO,
+                    "starting improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
+        improvementCount = self.getImprovementCount()
+        improvement = self.getImprovement()
+        es = self.graphCopy.es
+        num_cores = self.processesCount
+        shortestPathParticipations = Parallel(n_jobs=num_cores)(
+            delayed(shortestPathsParticipationforE)(i.index, self.graphCopy) for i in es)
+        # print espResult
+        ##TODO
+        slacks = self.graphCopy.es(deletable=False).indices
+        for i, slack in enumerate(slacks):
+            shortestPathParticipations[slack]
+        chosen = (-np.array(shortestPathParticipations)).argsort()[:improvementCount]
+        for res in chosen:
+            edge = self.graphCopy.es.find(int(res))
+            if edge["c"] != 0.0:
+                edge["c"] += improvement
+        logging.log(logging.INFO,
+                    "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
+        return self.graphCopy, self.caseCopy
+
+    def serializeCSV(self, csvResult):
+        if not os.path.exists(self.outputDir):
+            os.makedirs(self.outputDir)
+        csvFileName = self.simName + "_" + self.serializationTime + ".csv"
+        outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
+        with open(outputCSVFilePath, 'wb') as outputCSVFile:
+            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'improvementRatio', 'improvement', 'improvedRatio',
+                          'improvedCount', 'method',
+                          'destroyMethod','destroyedItems', 'alpha']
+            writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
+
+            writer.writeheader()
+            [writer.writerow({'status': i[0], 'n': i[1], 'LCCRatio': i[2], 'PfPdRatio': i[3],
+                              'improvementRatio': self.improvementRatio, 'improvement': self.getImprovement(),
+                              'improvedRatio': self.improvedRatio,
+                              'improvedCount': self.getImprovementCount(),
+                              'method': self.methodName,
+                              'destroyMethod': self.destroyMethod,'destroyedItems':i[4], 'alpha': self.alpha}) for i in csvResult]
+        outputCSVFile.close()
+
+    def __init__(self, dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod,
+                 improvedRatio,
+                 improvementRatio, vMaxK=1,
+                 vStep=None):
+        MethodBase.__init__(self, dataName, simName, processesCount, outputDir, 'Closeness edge', N, graphCopy, caseCopy, alpha,
+                            destroyMethod, vMaxK, vStep)
+        self.improvedRatio = improvedRatio
+        self.improvementRatio = improvementRatio
+
+class SlackPercentageVertex(MethodBase):
+    def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
+                 improvementRatio,vMaxK=1,
+                 vStep=None):
+        MethodBase.__init__(self,dataName, simName, processesCount, outputDir, 'SlackPercentage vertex', N, graphCopy, caseCopy, alpha,
+                            destroyMethod,vMaxK, vStep)
+        self.improvedRatio = improvedRatio
+        self.improvementRatio = improvementRatio
+
+    def improveResiliency(self):
+        logging.log(logging.INFO,
+                    "starting improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
+        improvementCount = self.getImprovementCount()
+        improvement = self.getImprovement()
+        slacks = self.graphCopy.vs(deletable=False).indices
+        simTask = SimTask(self.methodName, 0, self.graphCopy.copy(), copyCase(self.caseCopy),vMaxK=self.vMaxK)
+        simTask.updateGraphFlow(simTask.graph,simTask.case)
+        vs = simTask.graph.vs
+        results = np.zeros(len(vs),dtype=float)
+        for i, v in enumerate(vs):
+            if v["deletable"]:
+                results[v.index] = (v["c"] - v["Pin"])/v["c"]
+            else:
+                results[v.index] = float("inf")
+        for index ,slack in enumerate(slacks):
+            results[slack] = float("inf")
+        vMaxKIndex = self.graphCopy.vs.select(_degree=self.graphCopy.maxdegree())[0].index
+        if vMaxKIndex in results:
+            results[vMaxKIndex] = float("inf")
+        chosen = (results).argsort()[:improvementCount]
+        for res in chosen:
+            vertex = self.graphCopy.vs.find(int(res))
+            if vertex["c"] != 0.0:
+                vertex["c"] += improvement
+        logging.log(logging.INFO,
+                    "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
+        return self.graphCopy, self.caseCopy
+
+    def serializeCSV(self, csvResult):
+        if not os.path.exists(self.outputDir):
+            os.makedirs(self.outputDir)
+        csvFileName = self.simName + "_" + self.serializationTime + ".csv"
+        outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
+        with open(outputCSVFilePath, 'wb') as outputCSVFile:
+            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'improvementRatio', 'improvement', 'improvedRatio',
+                          'improvedCount', 'method',
+                          'destroyMethod','destroyedItems', 'alpha']
+            writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
+
+            writer.writeheader()
+            [writer.writerow({'status': i[0], 'n': i[1], 'LCCRatio': i[2], 'PfPdRatio': i[3],
+                              'improvementRatio': self.improvementRatio, 'improvement': self.getImprovement(),
+                              'improvedRatio': self.improvedRatio,
+                              'improvedCount': self.getImprovementCount(),
+                              'method': self.methodName,
+                              'destroyMethod': self.destroyMethod,'destroyedItems':i[4], 'alpha': self.alpha}) for i in csvResult]
+        outputCSVFile.close()
+
+class SlackPercentageEdge(MethodBase):
+    def __init__(self,dataName, simName, processesCount, outputDir, N, graphCopy, caseCopy, alpha, destroyMethod, improvedRatio,
+                 improvementRatio,vMaxK=1,
+                 vStep=None):
+        MethodBase.__init__(self,dataName, simName, processesCount, outputDir, 'SlackPercentage vertex', N, graphCopy, caseCopy, alpha,
+                            destroyMethod,vMaxK, vStep)
+        self.improvedRatio = improvedRatio
+        self.improvementRatio = improvementRatio
+
+    def improveResiliency(self):
+        logging.log(logging.INFO,
+                    "starting improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
+        improvementCount = self.getImprovementCount()
+        improvement = self.getImprovement()
+        slacks = self.graphCopy.es(deletable=False).indices
+        simTask = SimTask(self.methodName, 0, self.graphCopy.copy(), copyCase(self.caseCopy),vMaxK=self.vMaxK)
+        simTask.updateGraphFlow(simTask.graph,simTask.case)
+        es = simTask.graph.es
+        results = np.zeros(len(es),dtype=float)
+        for i, e in enumerate(es):
+            if e["deletable"]:
+                results[e.index] = (e["c"] - fabs(e["Pin"]))/e["c"]
+            else:
+                results[e.index] = float("inf")
+        for index ,slack in enumerate(slacks):
+            results[slack] = float("inf")
+        chosen = (results).argsort()[:improvementCount]
+        for res in chosen:
+            edge = self.graphCopy.es.find(int(res))
+            if edge["c"] != 0.0:
+                edge["c"] += improvement
+        logging.log(logging.INFO,
+                    "finishing improvement of graph resiliency for method %(method)s" % {"method": self.methodName})
+        return self.graphCopy, self.caseCopy
+
+    def serializeCSV(self, csvResult):
+        if not os.path.exists(self.outputDir):
+            os.makedirs(self.outputDir)
+        csvFileName = self.simName + "_" + self.serializationTime + ".csv"
+        outputCSVFilePath = os.path.join(self.outputDir, csvFileName)
+        with open(outputCSVFilePath, 'wb') as outputCSVFile:
+            fieldNames = ['status', 'n', 'LCCRatio', 'PfPdRatio', 'improvementRatio', 'improvement', 'improvedRatio',
+                          'improvedCount', 'method',
+                          'destroyMethod','destroyedItems', 'alpha']
+            writer = csv.DictWriter(outputCSVFile, delimiter=";", fieldnames=fieldNames)
+
+            writer.writeheader()
+            [writer.writerow({'status': i[0], 'n': i[1], 'LCCRatio': i[2], 'PfPdRatio': i[3],
+                              'improvementRatio': self.improvementRatio, 'improvement': self.getImprovement(),
+                              'improvedRatio': self.improvedRatio,
+                              'improvedCount': self.getImprovementCount(),
+                              'method': self.methodName,
+                              'destroyMethod': self.destroyMethod,'destroyedItems':i[4], 'alpha': self.alpha}) for i in csvResult]
+        outputCSVFile.close()
