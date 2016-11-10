@@ -3,7 +3,7 @@
   "alpha": 0.005,
   "vStep": 45,
   "simOutput": "simulationsTemp",
-  "simProcessorsCount": 1,
+  "simProcessorsCount": 3,
   "simTasks": [
     {
       "methodName": "GreedyEdge",

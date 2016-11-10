@@ -25,7 +25,7 @@ import logging
 
 
 def main():
-    configureBasicLogger(currentDir)
+    # configureBasicLogger(currentDir)
 
     parser = OptionParser()
     parser.add_option("-i", "--input", dest="input", default="data", help="folder with input data")
