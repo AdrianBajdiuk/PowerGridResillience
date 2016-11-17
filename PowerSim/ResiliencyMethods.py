@@ -181,17 +181,16 @@ class MethodBase(multiprocessing.Process):
         self.serializationTime = time.strftime("%Y%m%d_%H-%M", time.localtime())
         self.simProcessors = []
         self.processesCount = processesCount
-
-
-    def run(self):
-        # logging queue
         configureBasicLogger(self.outputDir, "sim-" + self.dataName + "-" + self.serializationTime + ".log")
+        # logging queue
         logging.log(logging.INFO, "starting %s task with data %s" % (self.simName, self.dataName))
-        logQueue = multiprocessing.Queue(-1)
+        self.logQueue = multiprocessing.Queue(-1)
         simLogPath = os.path.join(self.outputDir, self.simName + "_" + strftime("%H-%M", gmtime()) + ".log")
-        logListener = multiprocessing.Process(target=listener_process, args=(logQueue, self.outputDir, simLogPath))
+        logListener = multiprocessing.Process(target=listener_process, args=(self.logQueue, self.outputDir, simLogPath))
         logListener.daemon = True
         logListener.start()
+
+    def run(self):
 
         self.graphCopy, self.caseCopy = self.improveResiliency()
         vStep = self.vStep
@@ -227,7 +226,7 @@ class MethodBase(multiprocessing.Process):
         # in this point tasks are generated
         # start processes, as much as configured
         for p in range(self.processesCount):
-            simP = multiprocessing.Process(target=simProcess, args=(self.tasks, self.results, logQueue))
+            simP = multiprocessing.Process(target=simProcess, args=(self.tasks, self.results, self.logQueue))
             # self.simProcessors.append(simP)
             simP.daemon = True
             simP.start()
@@ -827,14 +826,10 @@ class GreedyVertex(MethodBase):
         vs = self.graphCopy.vs
         vMaxKIndex = self.graphCopy.vs.select(_degree=self.graphCopy.maxdegree())[0].index
         results = []
-        logQ  = multiprocessing.Queue(-1)
-        simLogPath = os.path.join(self.outputDir, self.simName + "_" + strftime("%H-%M", gmtime()) + ".log")
-        logListener = multiprocessing.Process(target=listener_process, args=(logQ, self.outputDir, simLogPath))
-        logListener.daemon = True
-        logListener.start()
         for i in range(0,improvementCount):
             greedySimTasks=multiprocessing.JoinableQueue()
             outputQ = multiprocessing.Queue()
+            simProcessors = []
             for j, v in enumerate(vs):
                 for k in range(0, self.greedyN):
                     localGraph = self.graphCopy.copy()
@@ -846,11 +841,12 @@ class GreedyVertex(MethodBase):
                     simTask = SimTask(self.methodName, 0, localGraph, copyCase(self.caseCopy),vMaxK=self.vMaxK)
                     greedySimTasks.put([simTask,v.index,v["deletable"],vMaxKIndex])
             for j in range(self.processesCount):
-                simP = multiprocessing.Process(target=greedySim,args=(greedySimTasks,outputQ,logQ))
+                simP = multiprocessing.Process(target=greedySim,args=(greedySimTasks,outputQ,self.logQueue))
                 simP.daemon = True
+                simProcessors.append(simP)
                 simP.start()
             greedySimTasks.join()
-            greedySimTaksResult =[]
+            greedySimTaksResult = []
             for j in range(outputQ.qsize()):
                 outputResult = outputQ.get()
                 greedySimTaksResult.append(outputResult)
@@ -860,6 +856,10 @@ class GreedyVertex(MethodBase):
                 cut = npGSTR[npGSTR[:,0] == v][:,1]
                 means[v] = np.average(cut)
             results.append(int(means.argsort()[-1]))
+            # terminate all processes
+            for j, p in enumerate(simProcessors):
+                p.terminate()
+
 
         for res in results:
             vertex = self.graphCopy.vs.find(int(res))
@@ -909,14 +909,10 @@ class GreedyEdge(MethodBase):
         simTask.updateGraphFlow(simTask.graph,simTask.case)
         es = simTask.graph.es
         results = []
-        logQ = multiprocessing.Queue(-1)
-        simLogPath = os.path.join(self.outputDir, self.simName + "_" + strftime("%H-%M", gmtime()) + ".log")
-        logListener = multiprocessing.Process(target=listener_process, args=(logQ, self.outputDir, simLogPath))
-        logListener.daemon = True
-        logListener.start()
         for i in range(0, improvementCount):
             greedySimTasks = multiprocessing.JoinableQueue()
             outputQ = multiprocessing.Queue()
+            simProcessors=[]
             for j, e in enumerate(es):
                 for k in range(0, self.greedyN):
                     localGraph = self.graphCopy.copy()
@@ -928,8 +924,9 @@ class GreedyEdge(MethodBase):
                     simTask = SimTask(self.methodName, 0, localGraph, copyCase(self.caseCopy), vMaxK=self.vMaxK)
                     greedySimTasks.put([simTask, e.index, e["deletable"], None])
             for j in range(self.processesCount):
-                simP = multiprocessing.Process(target=greedySim, args=(greedySimTasks, outputQ, logQ))
+                simP = multiprocessing.Process(target=greedySim, args=(greedySimTasks, outputQ, self.logQueue))
                 simP.daemon = True
+                simProcessors.append(simP)
                 simP.start()
             greedySimTasks.join()
             greedySimTaksResult = []
@@ -942,6 +939,8 @@ class GreedyEdge(MethodBase):
                 cut = npGSTR[npGSTR[:, 0] == e][:, 1]
                 means[e] = np.average(cut)
             results.append(int(means.argsort()[-1]))
+            for j, p in enumerate(simProcessors):
+                p.terminate()
 
         for res in results:
             edge = self.graphCopy.es.find(int(res))

@@ -3,16 +3,16 @@
   "alpha": 0.005,
   "vStep": 45,
   "simOutput": "simulationsTemp",
-  "simProcessorsCount": 3,
+  "simProcessorsCount": 2,
   "simTasks": [
     {
-      "methodName": "GreedyEdge",
+      "methodName": "GreedyVertex",
       "destroyMethod": "VMaxK",
       "simName": "CVertex-i-0_002-ic-0_05",
       "destroyMethod": "VMaxK",
       "improvement": 0.002,
       "improvementCount": 0.05,
-      "greedyN":2
+      "greedyN":1
     }
   ]
 }
